@@ -4,14 +4,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#040606" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>INTAKE</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=8" />
   <script type="importmap">
     {
       "imports": {
         "three": "./vendor/three.module.js"
       }
     }
+  </script>
+  <script>
+    window.__intakeBooted = false;
+    window.__intakeStart = null;
+    window.__intakeBootStatus = function (text) {
+      var el = document.getElementById("boot-status");
+      if (el) el.textContent = text;
+    };
+    window.addEventListener("error", function (event) {
+      if (window.__intakeBooted) return;
+      window.__intakeBootStatus("ENGINE ERROR: " + (event && event.message ? event.message : "unknown"));
+    });
+    window.addEventListener("load", function () {
+      setTimeout(function () {
+        if (!window.__intakeBooted) {
+          window.__intakeBootStatus("ENGINE DID NOT LOAD. HARD-REFRESH OR USE THE LIVE LINK.");
+        }
+      }, 4500);
+    });
   </script>
 </head>
 <body>
@@ -103,9 +125,11 @@
         <h1>INTAKE</h1>
         <p class="title-tag">One flashlight. One breath. One way out.</p>
         <p class="title-warning">Contains sudden loud sounds, flashing lights, claustrophobic spaces, psychological horror, family tragedy, character death, stylized violence, and corpses.</p>
-        <button id="start" class="ink-button">ENTER THE VENTS</button>
+        <button id="start" class="ink-button" type="button" onclick="if (window.__intakeStart) window.__intakeStart(); else window.__intakeBootStatus('LOADING ENGINE…');">ENTER THE VENTS</button>
+        <p id="boot-status" class="title-small dim"></p>
         <p class="title-small">Headphones recommended. Desktop only. WASD + mouse.</p>
         <p class="title-small dim">Click the screen to capture the mouse.</p>
+        <p class="title-version">BUILD 0.5.0</p>
       </div>
     </div>
 
@@ -113,6 +137,6 @@
     <div id="flash"></div>
   </div>
 
-  <script type="module" src="src/main.js?v=7"></script>
+  <script type="module" src="src/main.js?v=8"></script>
 </body>
 </html>

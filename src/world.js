@@ -34,6 +34,227 @@ export function basic(color, opts = {}) {
   return new THREE.MeshBasicMaterial({ color, ...opts });
 }
 
+const _surfaceCache = new Map();
+export function surfaceTexture(kind = "metal", opts = {}) {
+  const size = opts.size ?? 256;
+  const repeat = opts.repeat ?? [1, 1];
+  const key = `${kind}|${size}|${repeat[0]}x${repeat[1]}`;
+  if (_surfaceCache.has(key)) return _surfaceCache.get(key);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const rnd = (min, max) => min + Math.random() * (max - min);
+
+  if (kind === "wood") {
+    ctx.fillStyle = "#c9a878";
+    ctx.fillRect(0, 0, size, size);
+    for (let i = 0; i < 5; i++) {
+      const y = (i / 5) * size;
+      ctx.fillStyle = i % 2 ? "rgba(90, 58, 30, 0.16)" : "rgba(255, 235, 200, 0.06)";
+      ctx.fillRect(0, y, size, size / 5);
+      ctx.strokeStyle = "rgba(60, 38, 20, 0.42)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(size, y);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 70; i++) {
+      ctx.strokeStyle = `rgba(80, 50, 24, ${rnd(0.04, 0.16)})`;
+      ctx.lineWidth = rnd(0.5, 1.6);
+      ctx.beginPath();
+      const y = rnd(0, size);
+      ctx.moveTo(0, y);
+      ctx.bezierCurveTo(size * 0.3, y + rnd(-8, 8), size * 0.7, y + rnd(-8, 8), size, y + rnd(-4, 4));
+      ctx.stroke();
+    }
+    for (let i = 0; i < 6; i++) {
+      ctx.fillStyle = "rgba(54, 34, 16, 0.28)";
+      ctx.beginPath();
+      ctx.ellipse(rnd(10, size - 10), rnd(10, size - 10), rnd(2, 5), rnd(4, 9), rnd(0, 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (kind === "concrete") {
+    ctx.fillStyle = "#b9beb4";
+    ctx.fillRect(0, 0, size, size);
+    for (let i = 0; i < 2200; i++) {
+      const g = Math.floor(rnd(70, 190));
+      ctx.fillStyle = `rgba(${g},${g + 4},${g},${rnd(0.04, 0.16)})`;
+      ctx.fillRect(rnd(0, size), rnd(0, size), rnd(1, 3), rnd(1, 3));
+    }
+    ctx.strokeStyle = "rgba(54, 60, 54, 0.4)";
+    ctx.lineWidth = 3;
+    for (let i = 0; i <= 2; i++) {
+      const p = (i / 2) * size;
+      ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(size, p); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, size); ctx.stroke();
+    }
+    for (let i = 0; i < 12; i++) {
+      ctx.fillStyle = `rgba(40, 48, 38, ${rnd(0.04, 0.12)})`;
+      ctx.beginPath();
+      ctx.ellipse(rnd(0, size), rnd(0, size), rnd(6, 26), rnd(3, 14), rnd(0, 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (let i = 0; i < 9; i++) {
+      ctx.strokeStyle = `rgba(40, 44, 38, ${rnd(0.15, 0.35)})`;
+      ctx.lineWidth = rnd(0.6, 1.3);
+      ctx.beginPath();
+      let x = rnd(0, size), y = rnd(0, size);
+      ctx.moveTo(x, y);
+      for (let j = 0; j < 4; j++) {
+        x += rnd(-26, 26); y += rnd(6, 22);
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  } else if (kind === "tile") {
+    ctx.fillStyle = "#b5bcb0";
+    ctx.fillRect(0, 0, size, size);
+    const step = size / 4;
+    for (let x = 0; x < 4; x++) {
+      for (let y = 0; y < 4; y++) {
+        ctx.fillStyle = (x + y) % 2 ? "rgba(255,255,255,0.055)" : "rgba(50,60,52,0.08)";
+        ctx.fillRect(x * step + 3, y * step + 3, step - 6, step - 6);
+      }
+    }
+    ctx.strokeStyle = "rgba(44, 52, 46, 0.42)";
+    ctx.lineWidth = 4;
+    for (let i = 0; i <= 4; i++) {
+      const p = i * step;
+      ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(size, p); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, size); ctx.stroke();
+    }
+    for (let i = 0; i < 18; i++) {
+      ctx.fillStyle = `rgba(60, 54, 32, ${rnd(0.03, 0.1)})`;
+      ctx.beginPath();
+      ctx.ellipse(rnd(0, size), rnd(0, size), rnd(3, 18), rnd(2, 8), rnd(0, 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (kind === "plaster") {
+    ctx.fillStyle = "#b7b2a4";
+    ctx.fillRect(0, 0, size, size);
+    for (let i = 0; i < 1600; i++) {
+      const g = Math.floor(rnd(90, 190));
+      ctx.fillStyle = `rgba(${g},${g - 4},${g - 12},${rnd(0.03, 0.12)})`;
+      ctx.fillRect(rnd(0, size), rnd(0, size), rnd(1, 4), rnd(1, 4));
+    }
+    for (let i = 0; i < 7; i++) {
+      ctx.strokeStyle = `rgba(70, 64, 52, ${rnd(0.12, 0.28)})`;
+      ctx.lineWidth = rnd(0.6, 1.2);
+      ctx.beginPath();
+      let x = rnd(0, size), y = rnd(0, size);
+      ctx.moveTo(x, y);
+      for (let j = 0; j < 5; j++) {
+        x += rnd(-18, 18); y += rnd(8, 26);
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  } else {
+    // riveted metal panels
+    ctx.fillStyle = "#c3c8bd";
+    ctx.fillRect(0, 0, size, size);
+    for (let i = 0; i < 1600; i++) {
+      const g = Math.floor(rnd(80, 200));
+      ctx.fillStyle = `rgba(${g},${g + 2},${g},${rnd(0.03, 0.13)})`;
+      ctx.fillRect(rnd(0, size), rnd(0, size), rnd(1, 3), rnd(1, 3));
+    }
+    // large panel seams
+    ctx.strokeStyle = "rgba(48, 58, 52, 0.55)";
+    ctx.lineWidth = 5;
+    for (let i = 1; i < 3; i++) {
+      const p = (i / 3) * size;
+      ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(size, p); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, size); ctx.stroke();
+    }
+    // panel highlights
+    ctx.strokeStyle = "rgba(255,255,255,0.13)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 3; i++) {
+      const p = (i / 3) * size + 3;
+      ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(size, p); ctx.stroke();
+    }
+    // rivets
+    for (let i = 0; i < 70; i++) {
+      const x = rnd(6, size - 6), y = rnd(6, size - 6);
+      ctx.fillStyle = "rgba(50,58,52,0.55)";
+      ctx.beginPath(); ctx.arc(x, y, rnd(1.2, 2.6), 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.beginPath(); ctx.arc(x - 0.6, y - 0.6, 0.9, 0, Math.PI * 2); ctx.fill();
+    }
+    // rust streaks
+    for (let i = 0; i < 9; i++) {
+      const x = rnd(0, size), w = rnd(2, 7), h = rnd(18, 84);
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "rgba(128, 66, 30, 0.24)");
+      grad.addColorStop(1, "rgba(128, 66, 30, 0)");
+      ctx.fillStyle = grad;
+      ctx.save();
+      ctx.translate(x, rnd(0, size));
+      ctx.fillRect(-w / 2, 0, w, h);
+      ctx.restore();
+    }
+    // scratches
+    for (let i = 0; i < 24; i++) {
+      ctx.strokeStyle = `rgba(40, 46, 42, ${rnd(0.08, 0.24)})`;
+      ctx.lineWidth = rnd(0.4, 1.1);
+      ctx.beginPath();
+      ctx.moveTo(rnd(0, size), rnd(0, size));
+      ctx.lineTo(rnd(0, size), rnd(0, size));
+      ctx.stroke();
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeat[0], repeat[1]);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  _surfaceCache.set(key, tex);
+  return tex;
+}
+
+let _glowTex = null;
+export function glowTexture() {
+  if (_glowTex) return _glowTex;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, "rgba(255,255,255,1)");
+  grad.addColorStop(0.22, "rgba(255,255,255,0.55)");
+  grad.addColorStop(0.6, "rgba(255,255,255,0.12)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+  _glowTex = new THREE.CanvasTexture(canvas);
+  _glowTex.colorSpace = THREE.SRGBColorSpace;
+  return _glowTex;
+}
+
+const _glowMats = new Map();
+export function addGlow(parent, color, x, y, z, scale = 1, opacity = 0.35) {
+  const key = `${color}|${opacity}`;
+  let material = _glowMats.get(key);
+  if (!material) {
+    material = new THREE.SpriteMaterial({
+      map: glowTexture(),
+      color,
+      transparent: true,
+      opacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    _glowMats.set(key, material);
+  }
+  const sprite = new THREE.Sprite(material);
+  sprite.position.set(x, y, z);
+  sprite.scale.set(scale, scale, 1);
+  parent.add(sprite);
+  return sprite;
+}
+
 export function box(w, h, d, color, x, y, z, parent, opts = {}) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), opts.material || mat(color, opts.mat || {}));
   m.position.set(x, y, z);
@@ -214,32 +435,55 @@ export function makeCrawler() {
   return g;
 }
 
+let _gunMetalMat = null;
+let _gunWoodMat = null;
+function gunMetal() {
+  if (!_gunMetalMat) {
+    _gunMetalMat = new THREE.MeshLambertMaterial({
+      color: 0x4e5a55,
+      map: surfaceTexture("metal", { repeat: [1, 1] }),
+      flatShading: true,
+    });
+  }
+  return _gunMetalMat;
+}
+function gunWood() {
+  if (!_gunWoodMat) {
+    _gunWoodMat = new THREE.MeshLambertMaterial({
+      color: 0x6b4426,
+      map: surfaceTexture("wood", { repeat: [1, 1] }),
+      flatShading: true,
+    });
+  }
+  return _gunWoodMat;
+}
+
 export function makePistol() {
   const g = new THREE.Group();
-  box(0.1, 0.12, 0.28, 0x2b3332, 0, 0, 0, g);
-  box(0.06, 0.16, 0.09, 0x1b2221, 0, -0.12, 0.03, g, { rotX: -0.22 });
-  box(0.035, 0.035, 0.14, 0x171d1c, 0, 0.015, -0.19, g);
+  box(0.1, 0.12, 0.28, 0x2b3332, 0, 0, 0, g, { material: gunMetal() });
+  box(0.06, 0.16, 0.09, 0x1b2221, 0, -0.12, 0.03, g, { rotX: -0.22, material: gunWood() });
+  box(0.035, 0.035, 0.14, 0x171d1c, 0, 0.015, -0.19, g, { material: gunMetal() });
   box(0.04, 0.04, 0.04, 0x6b5b3e, 0, 0.03, -0.28, g);
   return g;
 }
 
 export function makeShotgun() {
   const g = new THREE.Group();
-  box(0.09, 0.1, 0.5, 0x3a2c21, 0, 0, -0.08, g);
-  cyl(0.032, 0.032, 0.58, 6, 0x222a28, 0, 0.035, -0.27, g, { rotX: Math.PI / 2 });
-  cyl(0.028, 0.028, 0.56, 6, 0x1b2220, -0.045, 0.005, -0.26, g, { rotX: Math.PI / 2 });
-  box(0.1, 0.13, 0.2, 0x4a3626, 0, -0.03, 0.2, g, { rotX: -0.12 });
-  box(0.06, 0.08, 0.16, 0x2a1f17, 0, -0.12, 0.27, g);
+  box(0.09, 0.1, 0.5, 0x3a2c21, 0, 0, -0.08, g, { material: gunWood() });
+  cyl(0.032, 0.032, 0.58, 6, 0x222a28, 0, 0.035, -0.27, g, { rotX: Math.PI / 2, material: gunMetal() });
+  cyl(0.028, 0.028, 0.56, 6, 0x1b2220, -0.045, 0.005, -0.26, g, { rotX: Math.PI / 2, material: gunMetal() });
+  box(0.1, 0.13, 0.2, 0x4a3626, 0, -0.03, 0.2, g, { rotX: -0.12, material: gunWood() });
+  box(0.06, 0.08, 0.16, 0x2a1f17, 0, -0.12, 0.27, g, { material: gunWood() });
   return g;
 }
 
 export function makeRifle() {
   const g = new THREE.Group();
-  box(0.08, 0.09, 0.72, 0x2b322d, 0, 0, -0.16, g);
-  cyl(0.025, 0.025, 0.8, 6, 0x1b211f, 0, 0.02, -0.46, g, { rotX: Math.PI / 2 });
-  box(0.11, 0.15, 0.22, 0x3b2c20, 0, -0.02, 0.2, g, { rotX: -0.1 });
-  box(0.07, 0.07, 0.2, 0x1d2421, 0, 0.11, -0.1, g);
-  cyl(0.035, 0.035, 0.16, 6, 0x0d1210, 0, 0.19, -0.12, g, { rotX: Math.PI / 2 });
+  box(0.08, 0.09, 0.72, 0x2b322d, 0, 0, -0.16, g, { material: gunMetal() });
+  cyl(0.025, 0.025, 0.8, 6, 0x1b211f, 0, 0.02, -0.46, g, { rotX: Math.PI / 2, material: gunMetal() });
+  box(0.11, 0.15, 0.22, 0x3b2c20, 0, -0.02, 0.2, g, { rotX: -0.1, material: gunWood() });
+  box(0.07, 0.07, 0.2, 0x1d2421, 0, 0.11, -0.1, g, { material: gunMetal() });
+  cyl(0.035, 0.035, 0.16, 6, 0x0d1210, 0, 0.19, -0.12, g, { rotX: Math.PI / 2, material: gunMetal() });
   return g;
 }
 
@@ -313,19 +557,39 @@ export function buildDiningRoom({ flashback = false } = {}) {
   const wall = flashback ? 0x2a3029 : 0x223430;
   const floor = flashback ? 0x2b2118 : 0x342518;
   const refs = {};
+  const floorMat = new THREE.MeshLambertMaterial({
+    color: floor,
+    map: surfaceTexture("wood", { repeat: [7, 6] }),
+    flatShading: true,
+  });
+  const wallMat = new THREE.MeshLambertMaterial({
+    color: wall,
+    map: surfaceTexture("plaster", { repeat: [4, 2] }),
+    flatShading: true,
+  });
+  const sideWallMat = new THREE.MeshLambertMaterial({
+    color: 0x1d2b27,
+    map: surfaceTexture("plaster", { repeat: [4, 2] }),
+    flatShading: true,
+  });
+  const tableMat = new THREE.MeshLambertMaterial({
+    color: 0x7a5230,
+    map: surfaceTexture("wood", { repeat: [3, 2] }),
+    flatShading: true,
+  });
 
-  box(8, 0.2, 7, floor, 0, -0.1, 0, group);
-  box(8, 3.1, 0.2, wall, 0, 1.55, -3.5, group);
-  box(8, 3.1, 0.2, 0x1b2825, 0, 1.55, 3.5, group);
-  box(0.2, 3.1, 7, 0x1d2b27, -4, 1.55, 0, group);
-  box(0.2, 3.1, 7, 0x1d2b27, 4, 1.55, 0, group);
+  box(8, 0.2, 7, floor, 0, -0.1, 0, group, { material: floorMat });
+  box(8, 3.1, 0.2, wall, 0, 1.55, -3.5, group, { material: wallMat });
+  box(8, 3.1, 0.2, 0x1b2825, 0, 1.55, 3.5, group, { material: sideWallMat });
+  box(0.2, 3.1, 7, 0x1d2b27, -4, 1.55, 0, group, { material: sideWallMat });
+  box(0.2, 3.1, 7, 0x1d2b27, 4, 1.55, 0, group, { material: sideWallMat });
   box(8, 0.15, 7, 0x19201e, 0, 3.05, 0, group);
 
   // baseboards / panels
   for (const x of [-3.1, -1.0, 1.1, 3.2]) box(1.65, 0.08, 0.06, 0x33413a, x, 0.1, -3.39, group);
 
   // table
-  box(2.8, 0.12, 1.5, C.wood2, 0, 0.76, 0, group);
+  box(2.8, 0.12, 1.5, C.wood2, 0, 0.76, 0, group, { material: tableMat });
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     box(0.12, 0.75, 0.12, C.wood, sx * 1.18, 0.37, sz * 0.58, group);
   }
@@ -370,6 +634,7 @@ export function buildDiningRoom({ flashback = false } = {}) {
   cyl(0.27, 0.38, 0.26, 8, 0x1e2421, 0, 2.48, 0, group);
   cyl(0.03, 0.03, 0.55, 6, 0x1d2220, 0, 2.8, 0, group);
   const lamp = pointLight(flashback ? 0xff7958 : 0xffc078, 2.8, 8, 0, 2.25, 0, group, { decay: 1.25 });
+  addGlow(group, flashback ? 0xff7958 : 0xffc078, 0, 2.25, 0, 1.2, 0.28);
   refs.lamp = lamp;
   const tableLight = pointLight(flashback ? 0xff8a64 : 0xffb36a, 1.5, 5.5, 0, 1.7, 0.75, group, { decay: 1.4 });
   refs.tableLight = tableLight;
@@ -511,6 +776,7 @@ export function buildKryl() {
     cyl(0.02, 0.02, 0.7, 5, 0x191d1a, x, 3.45, -0.7, group);
     const b = sphere(0.09, 6, 5, 0xffb765, x, 3.1, -0.7, group, { material: basic(0xffb765) });
     pointLight(0xff9a4a, 1.35, 6.0, x, 3.0, -0.7, group, { decay: 1.5 });
+    addGlow(group, 0xffb765, x, 3.1, -0.7, 0.75, 0.3);
   }
   // main warm wash — the station is poor, but it is alive
   pointLight(0xffb070, 10.5, 18, 0, 3.6, 0, group, { decay: 1.15 });
@@ -522,6 +788,7 @@ export function buildKryl() {
     cyl(0.02, 0.02, 0.7, 5, 0x191d1a, x, 3.45, 2.8, group);
     sphere(0.09, 6, 5, 0xffb765, x, 3.1, 2.8, group, { material: basic(0xffb765) });
     pointLight(0xff9a4a, 1.8, 6.0, x, 3.0, 2.8, group, { decay: 1.5 });
+    addGlow(group, 0xffb765, x, 3.1, 2.8, 0.75, 0.3);
   }
 
   // counter / Tokar's shop

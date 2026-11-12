@@ -6,13 +6,15 @@ import {
   plane,
   mat,
   basic,
+  surfaceTexture,
+  addGlow,
   pointLight,
   makeHumanoid,
   makeRat,
   makeTenant,
   makeCrawler,
   makeScavenger,
-} from "./world.js?v=7";
+} from "./world.js?v=8";
 
 function vec(x, y, z) {
   return new THREE.Vector3(x, y, z);
@@ -21,12 +23,22 @@ function vec(x, y, z) {
 function ventShell({ w = 12, d = 14, h = 3.2, floor = 0x242b27, wall = 0x29322d, ceiling = 0x131918 } = {}) {
   const group = new THREE.Group();
   const colliders = [];
-  box(w, 0.2, d, floor, 0, -0.1, 0, group);
+  const floorMat = new THREE.MeshLambertMaterial({
+    color: floor,
+    map: surfaceTexture("concrete", { repeat: [4, 4] }),
+    flatShading: true,
+  });
+  const wallMat = new THREE.MeshLambertMaterial({
+    color: wall,
+    map: surfaceTexture("metal", { repeat: [3, 1] }),
+    flatShading: true,
+  });
+  box(w, 0.2, d, floor, 0, -0.1, 0, group, { material: floorMat });
   box(w, 0.16, d, ceiling, 0, h, 0, group);
-  box(0.2, h, d, wall, -w / 2, h / 2, 0, group);
-  box(0.2, h, d, wall, w / 2, h / 2, 0, group);
-  box(w, h, 0.2, wall, 0, h / 2, -d / 2, group);
-  box(w, h, 0.2, wall, 0, h / 2, d / 2, group);
+  box(0.2, h, d, wall, -w / 2, h / 2, 0, group, { material: wallMat });
+  box(0.2, h, d, wall, w / 2, h / 2, 0, group, { material: wallMat });
+  box(w, h, 0.2, wall, 0, h / 2, -d / 2, group, { material: wallMat });
+  box(w, h, 0.2, wall, 0, h / 2, d / 2, group, { material: wallMat });
   colliders.push({ minX: -w / 2 - 0.2, maxX: -w / 2 + 0.2, minZ: -d / 2, maxZ: d / 2 });
   colliders.push({ minX: w / 2 - 0.2, maxX: w / 2 + 0.2, minZ: -d / 2, maxZ: d / 2 });
   colliders.push({ minX: -w / 2, maxX: w / 2, minZ: -d / 2 - 0.2, maxZ: -d / 2 + 0.2 });
@@ -131,6 +143,7 @@ function door(group, x, z, label = "VENT", rotY = 0) {
   plane(0.92, 0.46, 0xffffff, 0, 2.36, 0.22, g, { material: signMaterial(label, "#d8c9a3") });
   // status lamp
   box(0.1, 0.1, 0.06, 0xb33a24, 0, 2.06, 0.2, g, { material: basic(0xb33a24) });
+  addGlow(g, 0xb33a24, 0, 2.06, 0.25, 0.38, 0.3);
   g.position.set(x, 0, z);
   g.rotation.y = rotY;
   group.add(g);
@@ -186,12 +199,27 @@ export function buildDeadRail() {
   const group = new THREE.Group();
   const colliders = [];
   const w = 26, d = 22;
-  box(w, 0.2, d, 0x1b1c19, 0, -0.1, 0, group);
+  const groundMat = new THREE.MeshLambertMaterial({
+    color: 0x2a2c27,
+    map: surfaceTexture("concrete", { repeat: [12, 10] }),
+    flatShading: true,
+  });
+  const wallMat = new THREE.MeshLambertMaterial({
+    color: 0x2b332e,
+    map: surfaceTexture("metal", { repeat: [8, 2] }),
+    flatShading: true,
+  });
+  const carMat = new THREE.MeshLambertMaterial({
+    color: 0x40504a,
+    map: surfaceTexture("metal", { repeat: [4, 2] }),
+    flatShading: true,
+  });
+  box(w, 0.2, d, 0x1b1c19, 0, -0.1, 0, group, { material: groundMat });
   // ruined perimeter
   for (const side of [-1, 1]) {
-    box(0.4, 3.5, d, 0x1d2421, side * (w / 2), 1.75, 0, group);
+    box(0.4, 3.5, d, 0x1d2421, side * (w / 2), 1.75, 0, group, { material: wallMat });
     colliders.push({ minX: side * (w / 2) - 0.25, maxX: side * (w / 2) + 0.25, minZ: -d / 2, maxZ: d / 2 });
-    box(w, 3.5, 0.4, 0x1d2421, 0, 1.75, side * (d / 2), group);
+    box(w, 3.5, 0.4, 0x1d2421, 0, 1.75, side * (d / 2), group, { material: wallMat });
     colliders.push({ minX: -w / 2, maxX: w / 2, minZ: side * (d / 2) - 0.25, maxZ: side * (d / 2) + 0.25 });
   }
   // rails
@@ -202,7 +230,7 @@ export function buildDeadRail() {
   // train cars
   for (const [x, z, rotY] of [[-6, -2, 0], [5, 3, Math.PI], [7, -5, 0]]) {
     const car = new THREE.Group();
-    box(7.2, 2.5, 2.5, 0x2e3935, 0, 1.3, 0, car);
+    box(7.2, 2.5, 2.5, 0x2e3935, 0, 1.3, 0, car, { material: carMat });
     box(6.9, 0.5, 2.2, 0x18211e, 0, 2.3, 0, car);
     for (let i = 0; i < 5; i++) box(1.0, 0.65, 0.06, 0x0b1110, -2.6 + i * 1.3, 1.6, 1.28, car);
     for (let i = 0; i < 4; i++) cyl(0.28, 0.28, 0.2, 8, 0x151b19, -2.4 + i * 1.6, 0.25, 1.25, car, { rotX: Math.PI / 2 });
@@ -222,6 +250,7 @@ export function buildDeadRail() {
   for (const [x, z] of [[-7, 5], [6, 2], [0, -5]]) {
     pointLight(0x8aa4a2, 2.2, 9, x, 3.4, z, group, { decay: 1.5 });
     box(0.14, 0.05, 0.4, 0x8fb2ae, x, 3.55, z, group, { material: basic(0x8fb2ae) });
+    addGlow(group, 0x9ac2bc, x, 3.55, z, 1.2, 0.28);
   }
   // ruined skyline beyond the yard
   const towerMat = mat(0x0a1210);
@@ -302,11 +331,26 @@ export function buildZarya() {
   const group = new THREE.Group();
   const colliders = [];
   const w = 14, d = 13;
-  box(w, 0.2, d, 0x211d18, 0, -0.1, 0, group);
-  box(w, 4.2, 0.2, 0x1d2a26, 0, 2.1, -d / 2, group);
-  box(w, 4.2, 0.2, 0x1d2a26, 0, 2.1, d / 2, group);
-  box(0.2, 4.2, d, 0x1b2824, -w / 2, 2.1, 0, group);
-  box(0.2, 4.2, d, 0x1b2824, w / 2, 2.1, 0, group);
+  const floorMat = new THREE.MeshLambertMaterial({
+    color: 0x6a4a30,
+    map: surfaceTexture("wood", { repeat: [6, 6] }),
+    flatShading: true,
+  });
+  const wallMat = new THREE.MeshLambertMaterial({
+    color: 0x44564e,
+    map: surfaceTexture("tile", { repeat: [6, 3] }),
+    flatShading: true,
+  });
+  const counterMat = new THREE.MeshLambertMaterial({
+    color: 0x8a5a34,
+    map: surfaceTexture("wood", { repeat: [4, 1] }),
+    flatShading: true,
+  });
+  box(w, 0.2, d, 0x211d18, 0, -0.1, 0, group, { material: floorMat });
+  box(w, 4.2, 0.2, 0x1d2a26, 0, 2.1, -d / 2, group, { material: wallMat });
+  box(w, 4.2, 0.2, 0x1d2a26, 0, 2.1, d / 2, group, { material: wallMat });
+  box(0.2, 4.2, d, 0x1b2824, -w / 2, 2.1, 0, group, { material: wallMat });
+  box(0.2, 4.2, d, 0x1b2824, w / 2, 2.1, 0, group, { material: wallMat });
   box(w, 0.2, d, 0x121918, 0, 4.2, 0, group);
   colliders.push({ minX: -w / 2 - 0.2, maxX: -w / 2 + 0.2, minZ: -d / 2, maxZ: d / 2 });
   colliders.push({ minX: w / 2 - 0.2, maxX: w / 2 + 0.2, minZ: -d / 2, maxZ: d / 2 });
@@ -326,6 +370,7 @@ export function buildZarya() {
     cyl(0.02, 0.02, 0.8, 5, 0x191d1a, x, 3.55, 0.8, group);
     sphere(0.1, 6, 5, 0xffb765, x, 3.1, 0.8, group, { material: basic(0xffb765) });
     pointLight(0xff9a4a, 3.0, 7, x, 3.0, 0.8, group, { decay: 1.3 });
+    addGlow(group, 0xffb765, x, 3.1, 0.8, 0.85, 0.32);
   }
   pointLight(0xffb070, 10, 18, 0, 3.4, 0, group, { decay: 1.1 });
   // station name and trader's stall details
@@ -368,8 +413,8 @@ export function buildZarya() {
   }
 
   // counter / Vera
-  box(3.4, 0.9, 0.8, 0x3f2e20, 0, 0.45, 1.3, group);
-  box(3.6, 0.1, 1.0, 0x5b4029, 0, 0.92, 1.3, group);
+  box(3.4, 0.9, 0.8, 0x3f2e20, 0, 0.45, 1.3, group, { material: counterMat });
+  box(3.6, 0.1, 1.0, 0x5b4029, 0, 0.92, 1.3, group, { material: counterMat });
   colliders.push({ minX: -1.8, maxX: 1.8, minZ: 0.9, maxZ: 1.7 });
   const vera = makeHumanoid({ coat: 0x5a3b2a, pants: 0x1d211e, hair: 0x2a1d14 });
   vera.position.set(0, 0, 2.0);
@@ -742,9 +787,13 @@ export function buildNest() {
   pointLight(0xa89070, 9.0, 18, 0, 3.7, -2.0, group, { decay: 1.2 });
   pointLight(0xffb070, 3.2, 8, 0, 2.4, 4.5, group, { decay: 1.35 });
   pointLight(0x7fa36a, 4.0, 9, 0, 2.5, -7.0, group, { decay: 1.3 });
+  addGlow(group, 0xa89070, 0, 3.7, -2.0, 2.0, 0.18);
+  addGlow(group, 0xffb070, 0, 2.4, 4.5, 1.2, 0.22);
+  addGlow(group, 0x7fa36a, 0, 2.5, -7.0, 1.2, 0.22);
   for (const [x, z, color] of [[-7, 2, 0x8a3a25], [7, 2, 0x8a3a25], [0, -7, 0x7fa36a], [0, 5, 0x7fa36a]]) {
     pointLight(color, 3.4, 9, x, 3.0, z, group, { decay: 1.3 });
     box(0.2, 0.06, 0.4, color, x, 3.2, z, group, { material: basic(color) });
+    addGlow(group, color, x, 3.2, z, 0.9, 0.24);
   }
   box(0.2, 3.0, 3.0, 0x111010, 0, 1.5, 8.4, group);
   const exitLight = pointLight(0x9bc17a, 0.9, 4, 0, 1.6, 7.8, group, { decay: 1.6 });
@@ -1009,9 +1058,11 @@ export function buildTitleScene() {
     box(0.5, 0.05, 0.24, 0x1b221f, 0, 3.0, s.z, group);
     box(0.38, 0.04, 0.12, s.color, 0, 2.97, s.z, group, { material: basic(s.color) });
     const l = pointLight(s.color, s.intensity, 12, 0, 2.65, s.z, group, { decay: 1.35 });
+    addGlow(group, s.color, 0, 2.97, s.z, 1.2, 0.3);
     refs.lights.push({ light: l, base: s.intensity, phase: Math.random() * 20, speed: 4 + Math.random() * 5 });
   }
   const red = pointLight(0x9a2a1a, 4.5, 8, 0, 1.8, -19.7, group, { decay: 1.25 });
+  addGlow(group, 0x9a2a1a, 0, 1.8, -19.7, 1.4, 0.26);
   refs.red = red;
   const doorway = pointLight(0x6a8a76, 2.4, 7, 0, 1.5, -16.0, group, { decay: 1.5 });
   refs.doorway = doorway;
@@ -1048,13 +1099,27 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
   const trimColor = mixColor(wallColor, 0x111815, 0.34);
   const ribColor = mixColor(wallColor, 0xa4b3a6, 0.14);
   const beamColor = mixColor(wallColor, 0x0b100e, 0.42);
-  const floorMat = new THREE.MeshLambertMaterial({ color: floorColor, flatShading: true });
+  const wallMat = new THREE.MeshLambertMaterial({
+    color: wallColor,
+    map: surfaceTexture("metal", { repeat: [2, 1] }),
+    flatShading: true,
+  });
+  const floorMat = new THREE.MeshLambertMaterial({
+    color: floorColor,
+    map: surfaceTexture("concrete", { repeat: [6, 6] }),
+    flatShading: true,
+  });
+  const ceilMat = new THREE.MeshLambertMaterial({
+    color: 0x111716,
+    map: surfaceTexture("metal", { repeat: [6, 6] }),
+    flatShading: true,
+  });
   box(size, 0.2, size, floorColor, 0, -0.1, 0, group, { material: floorMat });
-  box(size, 0.16, size, 0x111716, 0, height, 0, group);
+  box(size, 0.16, size, 0x111716, 0, height, 0, group, { material: ceilMat });
   // outer shell
   for (const side of [-1, 1]) {
-    box(0.28, height + 0.2, size, wallColor, side * half, height / 2, 0, group);
-    box(size, height + 0.2, 0.28, wallColor, 0, height / 2, side * half, group);
+    box(0.28, height + 0.2, size, wallColor, side * half, height / 2, 0, group, { material: wallMat });
+    box(size, height + 0.2, 0.28, wallColor, 0, height / 2, side * half, group, { material: wallMat });
     colliders.push({ minX: side * half - 0.16, maxX: side * half + 0.16, minZ: -half, maxZ: half });
     colliders.push({ minX: -half, maxX: half, minZ: side * half - 0.16, maxZ: side * half + 0.16 });
   }
@@ -1095,6 +1160,15 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
       }
     }
   }
+  // guarantee a readable entrance corridor instead of spawning nose-first into a wall
+  const entrance = Math.random() < 0.55 ? [0, 1] : [1, 0];
+  for (let k = 0; k < 2; k++) {
+    const ax = entrance[0] * k, az = entrance[1] * k;
+    const bx = entrance[0] * (k + 1), bz = entrance[1] * (k + 1);
+    if (!inside(bx, bz)) break;
+    open.add(edgeKey(key(ax, az), key(bx, bz)));
+  }
+  const entranceYaw = entrance[0] === 1 ? -Math.PI / 2 : Math.PI;
   const center = (i, j) => new THREE.Vector3(-half + (i + 0.5) * cell, 0, -half + (j + 0.5) * cell);
 
   // internal walls with ribs, base trim, and occasional wall pipes
@@ -1106,7 +1180,7 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
         const b = key(i + 1, j);
         if (!open.has(edgeKey(a, b))) {
           const x = -half + (i + 1) * cell;
-          box(0.18, height, cell, wallColor, x, height / 2, c.z, group);
+          box(0.18, height, cell, wallColor, x, height / 2, c.z, group, { material: wallMat });
           colliders.push({ minX: x - 0.12, maxX: x + 0.12, minZ: c.z - cell / 2, maxZ: c.z + cell / 2 });
           for (const k of [-0.24, 0.24]) {
             box(0.07, height - 0.24, 0.09, ribColor, x, height / 2, c.z + cell * k, group);
@@ -1128,7 +1202,7 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
         const b = key(i, j + 1);
         if (!open.has(edgeKey(a, b))) {
           const z = -half + (j + 1) * cell;
-          box(cell, height, 0.18, wallColor, c.x, height / 2, z, group);
+          box(cell, height, 0.18, wallColor, c.x, height / 2, z, group, { material: wallMat });
           colliders.push({ minX: c.x - cell / 2, maxX: c.x + cell / 2, minZ: z - 0.12, maxZ: z + 0.12 });
           for (const k of [-0.24, 0.24]) {
             box(0.09, height - 0.24, 0.07, ribColor, c.x + cell * k, height / 2, z, group);
@@ -1198,27 +1272,8 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
   }
   path.reverse();
 
-  // face down the guaranteed route, not at the nearest wall
-  let startYaw = 0;
-  if (path.length > 1) {
-    const dx = path[1].x - path[0].x;
-    const dz = path[1].z - path[0].z;
-    if (Math.abs(dx) > Math.abs(dz)) startYaw = dx > 0 ? -Math.PI / 2 : Math.PI / 2;
-    else startYaw = dz > 0 ? Math.PI : 0;
-  } else {
-    const startOptions = [
-      { dx: 0, dz: 1, yaw: Math.PI },
-      { dx: 1, dz: 0, yaw: -Math.PI / 2 },
-      { dx: 0, dz: -1, yaw: 0 },
-      { dx: -1, dz: 0, yaw: Math.PI / 2 },
-    ];
-    for (const o of startOptions) {
-      if (inside(o.dx, o.dz) && open.has(edgeKey(key(0, 0), key(o.dx, o.dz)))) {
-        startYaw = o.yaw;
-        break;
-      }
-    }
-  }
+  // face down the guaranteed entrance corridor
+  const startYaw = entranceYaw;
 
   // light fixtures: bright core, dark bracket, some flicker
   const flickerLights = [];
@@ -1228,6 +1283,7 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
       box(0.5, 0.04, 0.22, 0x1b221f, c.x, height - 0.3, c.z, group);
       box(0.44, 0.045, 0.16, 0x0b0f0d, c.x, height - 0.27, c.z, group);
       box(0.36, 0.035, 0.1, lightColor, c.x, height - 0.25, c.z, group, { material: basic(lightColor) });
+      addGlow(group, lightColor, c.x, height - 0.25, c.z, 0.9, 0.3);
       if ((i + j) % 4 === 0) {
         const light = pointLight(lightColor, 2.4, 7.4, c.x, height - 0.48, c.z, group, { decay: 1.5 });
         if (Math.random() < 0.32) {
@@ -1239,6 +1295,8 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
   // warm contrast at the entrance, red warning at the exit
   pointLight(0xd6a14a, 2.4, 7, center(0, 0).x, 1.9, center(0, 0).z, group, { decay: 1.5 });
   pointLight(0xb33a24, 2.6, 7, center(n - 1, n - 1).x, 1.9, center(n - 1, n - 1).z, group, { decay: 1.5 });
+  addGlow(group, 0xd6a14a, center(0, 0).x, 1.9, center(0, 0).z, 1.5, 0.22);
+  addGlow(group, 0xb33a24, center(n - 1, n - 1).x, 1.9, center(n - 1, n - 1).z, 1.3, 0.26);
 
   // floor grates and drains
   const grateMat = new THREE.MeshLambertMaterial({ map: grateTexture(), color: 0xffffff });
@@ -1302,6 +1360,7 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
   // small green emergency marker and wall sign at some dead ends
   for (const c of deadEnds.slice(0, 4)) {
     box(0.16, 0.05, 0.28, 0x8fc46a, c.x, 2.25, c.z, group, { material: basic(0x8fc46a) });
+    addGlow(group, 0x8fc46a, c.x, 2.25, c.z, 0.72, 0.22);
     pointLight(0x6fa34a, 1.2, 4, c.x, 2.05, c.z, group, { decay: 1.7 });
   }
 
@@ -1423,15 +1482,38 @@ function hazardMaterial(color = "#b98b2f") {
   return m;
 }
 
+let _crateMat = null;
+let _barrelMat = null;
+function crateMaterial() {
+  if (!_crateMat) {
+    _crateMat = new THREE.MeshLambertMaterial({
+      color: 0x8a6339,
+      map: surfaceTexture("wood", { repeat: [1, 1] }),
+      flatShading: true,
+    });
+  }
+  return _crateMat;
+}
+function barrelMaterial() {
+  if (!_barrelMat) {
+    _barrelMat = new THREE.MeshLambertMaterial({
+      color: 0x6a4a2a,
+      map: surfaceTexture("metal", { repeat: [1, 1] }),
+      flatShading: true,
+    });
+  }
+  return _barrelMat;
+}
+
 function addCrate(group, colliders, x, z, s = 0.65) {
-  box(s, s, s, 0x4a3a28, x, s / 2, z, group, { rotY: Math.random() * 0.5 });
+  box(s, s, s, 0x4a3a28, x, s / 2, z, group, { rotY: Math.random() * 0.5, material: crateMaterial() });
   box(s * 0.86, s * 0.08, s * 1.02, 0x2f251a, x, s * 0.75, z, group, { rotY: Math.random() * 0.1 });
   box(s * 0.86, s * 0.1, s * 0.08, 0x2f251a, x, s * 0.5, z + s / 2, group);
   colliders.push({ minX: x - s / 2, maxX: x + s / 2, minZ: z - s / 2, maxZ: z + s / 2 });
 }
 
 function addBarrel(group, colliders, x, z) {
-  cyl(0.3, 0.3, 0.82, 8, 0x5a4328, x, 0.41, z, group);
+  cyl(0.3, 0.3, 0.82, 8, 0x5a4328, x, 0.41, z, group, { material: barrelMaterial() });
   cyl(0.31, 0.31, 0.06, 8, 0x2e2417, x, 0.16, z, group);
   cyl(0.31, 0.31, 0.06, 8, 0x2e2417, x, 0.66, z, group);
   colliders.push({ minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 });

@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { AudioEngine } from "./audio.js?v=7";
-import { UI } from "./ui.js?v=7";
+import { AudioEngine } from "./audio.js?v=8";
+import { UI } from "./ui.js?v=8";
 import {
   buildDiningRoom,
   buildCrawlspace,
@@ -10,7 +10,7 @@ import {
   makeShotgun,
   makeRifle,
   makeCrawler,
-} from "./world.js?v=7";
+} from "./world.js?v=8";
 import {
   buildDeadRail,
   buildZarya,
@@ -26,7 +26,7 @@ import {
   buildWarrenMaze,
   buildFloodedMaze,
   buildLairMaze,
-} from "./levels.js?v=7";
+} from "./levels.js?v=8";
 
 const canvas = document.getElementById("c");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
@@ -2034,6 +2034,13 @@ document.addEventListener("mouseup", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  if (state === "title") {
+    if (e.code === "Enter" || e.code === "Space") {
+      e.preventDefault();
+      startGame();
+    }
+    return;
+  }
   if (e.code === "Escape") {
     if (shopOpen) closeShop();
     ui.prompt(null);
@@ -2094,18 +2101,41 @@ canvas.addEventListener("click", () => {
   if (document.pointerLockElement !== canvas) lockPointer();
 });
 
+// A click anywhere on the title starts the game, even if the button's own
+// listener was not attached for any reason.
+document.addEventListener("pointerdown", () => {
+  if (state === "title") startGame();
+}, true);
+
 function startGame() {
   if (state !== "title") return;
+  const btn = document.getElementById("start");
+  if (btn) {
+    btn.textContent = "ENTERING…";
+    btn.classList.add("pressed");
+  }
+  window.__intakeBootStatus?.("STARTING…");
   try {
     audio.init();
   } catch (err) {
     // Audio is optional; the game must still start.
   }
-  hideTitle();
-  startPrologue();
-  lockPointer();
-  setTimeout(updateLookHint, 300);
+  try {
+    hideTitle();
+    startPrologue();
+    lockPointer();
+    setTimeout(updateLookHint, 300);
+  } catch (err) {
+    console.error("INTAKE failed to start:", err);
+    window.__intakeBootStatus?.("START FAILED. OPEN THE BROWSER CONSOLE OR HARD-REFRESH.");
+    if (btn) {
+      btn.textContent = "TRY AGAIN";
+      btn.classList.remove("pressed");
+    }
+    ui.showTitle(true);
+  }
 }
+window.__intakeStart = startGame;
 
 document.getElementById("start").addEventListener("click", () => {
   startGame();
@@ -2291,4 +2321,6 @@ if (sceneParam === "vent" || sceneParam === "kryl" || LEVEL_BUILDERS[sceneParam]
 startTitleScene();
 ui.showTitle(true);
 ui.clearFade();
+window.__intakeBooted = true;
+window.__intakeBootStatus?.("");
 animate();
