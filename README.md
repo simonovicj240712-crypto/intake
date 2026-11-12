@@ -77,6 +77,13 @@ These are development shortcuts and do not affect normal play:
 - In the console: `__intake.snapshot()`, `__intake.goto("zarya")`, `__intake.step(0.1)`, `__intake.worldInfo()`, `__intake.interact()`, `__intake.addMgr(50)`, `__intake.give("shotgun")`, `__intake.heal()`, `__intake.damage(10)`, `__intake.scare()`, `__intake.jumpscareHit()`.
 - Test hooks: `__intake.setHealth(n)`, `__intake.setPos(x, z)`, `__intake.look(yaw, pitch)`, `__intake.fire()`, `__intake.reload()`, `__intake.melee()`, `__intake.die()`, `__intake.kill()`.
 
+## Known limitations
+
+- This is a condensed prototype, not the full 3–3.5 hour design.
+- Pointer lock must be granted by the browser. If the mouse does not capture, click the screen once.
+- Some set dressing and creature animation still reads as placeholder; the maze layout is procedurally generated on every load.
+- Automated tests cover transitions, interactions, combat, shop, death/retry, and the ending, but not real user pointer-lock input.
+
 ## Tech
 
 - [Three.js](https://threejs.org/) r160, vendored in `vendor/three.module.js`
