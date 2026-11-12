@@ -322,7 +322,6 @@ function startPrologue() {
   levelId = null;
   jumpscare = null;
   gunshotWarned = false;
-
   const res = loadWorld(buildDiningRoom());
   scene.background.setHex(0x060403);
   setFog(0x080604, 0.028);
@@ -349,8 +348,7 @@ function startPrologue() {
 
   ui.chapter("PROLOGUE", "THE LAST DINNER", "Kryl Station — years before", 2600);
   ui.subtitle("Mom: Eat while it's warm.", 2400);
-  ui.setFade(1, 0);
-  setTimeout(() => ui.fadeIn(1200), 100);
+  ui.clearFade();
   return res;
 }
 
@@ -568,8 +566,7 @@ function startKryl() {
   setTimeout(() => {
     if (state === "kryl") ui.subtitle("Tokar: Over here, kid.", 2600);
   }, 2900);
-  ui.setFade(1, 0);
-  setTimeout(() => ui.fadeIn(1000), 100);
+  ui.clearFade();
 }
 
 function startVent(retry = false) {
@@ -622,8 +619,7 @@ function startVent(retry = false) {
   setTimeout(() => {
     if (state === "vent") ui.subtitle("WASD move · F flashlight · Ctrl crouch · E search · LMB fire", 5000);
   }, 2200);
-  ui.setFade(1, 0);
-  setTimeout(() => ui.fadeIn(900), 100);
+  ui.clearFade();
 }
 
 function updatePlayer(dt) {
@@ -1094,8 +1090,7 @@ function startLevel(id, retry = false) {
       if (state === "explore") ui.subtitle("WASD move · LMB fire · F flashlight · E interact · H medkit", 5200);
     }, 2400);
   }
-  ui.setFade(1, 0);
-  setTimeout(() => ui.fadeIn(900), 100);
+  ui.clearFade();
 }
 
 function openShop() {
@@ -1694,11 +1689,25 @@ canvas.addEventListener("click", () => {
   if (document.pointerLockElement !== canvas) lockPointer();
 });
 
-document.getElementById("start").addEventListener("click", () => {
-  audio.init();
+function startGame() {
+  if (state !== "title") return;
+  try {
+    audio.init();
+  } catch (err) {
+    // Audio is optional; the game must still start.
+  }
   hideTitle();
-  lockPointer();
   startPrologue();
+  lockPointer();
+}
+
+document.getElementById("start").addEventListener("click", () => {
+  startGame();
+});
+
+document.getElementById("title").addEventListener("click", (e) => {
+  if (e.target.closest("button")) return;
+  startGame();
 });
 
 document.getElementById("retry").addEventListener("click", () => {
@@ -1837,6 +1846,5 @@ if (sceneParam === "vent" || sceneParam === "kryl" || LEVEL_BUILDERS[sceneParam]
 }
 
 ui.showTitle(true);
-ui.setFade(1, 0);
-setTimeout(() => ui.fadeIn(900), 200);
+ui.clearFade();
 animate();

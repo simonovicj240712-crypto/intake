@@ -155,8 +155,15 @@ export class UI {
   }
 
   setFade(opacity, ms = 800) {
+    this.el.fade.style.display = "block";
     this.el.fade.style.transition = `opacity ${ms}ms ease`;
     this.el.fade.style.opacity = String(opacity);
+  }
+
+  clearFade() {
+    this.el.fade.style.transition = "none";
+    this.el.fade.style.opacity = "0";
+    this.el.fade.style.display = "none";
   }
 
   fadeOut(ms = 900) {
