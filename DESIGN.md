@@ -1,7 +1,7 @@
 # INTAKE
-### Working design document — v1.6
+### Working design document — v1.7
 
-> **Implementation status:** the first complete playable campaign is in the repo — prologue, Kryl, Dead Rail, Zarya, the deep vents, the Lair, the last crawl, and the Nest ending. It is a condensed pass; the expanded 3–3.5 hour version described below is the target for future updates.
+> **Implementation status:** the first complete playable campaign is in the repo — prologue, Kryl, Dead Rail, Zarya, the deep vents, the Lair, the last crawl, and the Nest ending. It is a condensed pass; the expanded 3–3.5 hour version described below is the target for future updates. The current build also has 3D memory dioramas, branching vent mazes, a title-screen diorama, a minimal vitals/ammo HUD, and skippable memories.
 
 > **Logline:** A scavenger descends into the ventilation system of a dead metro station to restore the air and reach Sanctuary, the last safe city. The vents are not empty. Something down here learned to move through them.
 
@@ -31,7 +31,7 @@ Photorealistic Metro visuals are not achievable in a no-build browser game made 
 What we **can** do is make the game feel real:
 
 1. **Systems with consequences** — every bullet, filter, bandage, and repair matters.
-2. **Diegetic information** — no floating HUD; check your magazine, your watch, your mask.
+2. **Diegetic information** — no floating minimap or quest log; a minimal vitals/ammo HUD, and the world itself supplies the rest.
 3. **Grounded sound and lighting** — occlusion, reverb, near-total darkness, a flashlight that behaves like a flashlight.
 4. **Weight and animation** — weapons have heft, reloads are physical, bodies have mass.
 5. **World detail** — vents sized like real vents, stations that look lived in, props that tell stories.

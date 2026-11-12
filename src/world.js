@@ -135,9 +135,20 @@ export function makeRat({ scale = 1, brood = false } = {}) {
   for (const side of [-1, 1]) {
     cyl(0.01, 0.025, 0.09, 5, 0xd9d0b0, 0.8, 0.36, side * 0.045, g, { rotX: Math.PI });
   }
-  // eye
+  // eyes, catching the flashlight
   sphere(0.025, 6, 4, 0x120d0a, 0.68, 0.5, 0.11, g);
   sphere(0.025, 6, 4, 0x120d0a, 0.68, 0.5, -0.11, g);
+  sphere(0.012, 5, 4, 0xd06a3a, 0.7, 0.51, 0.12, g, { material: basic(0xd06a3a) });
+  sphere(0.012, 5, 4, 0xd06a3a, 0.7, 0.51, -0.12, g, { material: basic(0xd06a3a) });
+  // exposed spine and ribs
+  for (let i = 0; i < 4; i++) {
+    box(0.05, 0.08, 0.08, 0x6a5743, -0.18 + i * 0.14, 0.72, 0, g);
+  }
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 3; i++) {
+      box(0.03, 0.12, 0.03, 0x8a7256, -0.06 + i * 0.16, 0.5, side * 0.3, g, { rotZ: side * 0.5 });
+    }
+  }
   // tail
   cyl(0.025, 0.01, 0.9, 5, 0x2a1f18, -0.7, 0.33, 0, g, { rotZ: -0.3, rotX: 0.1 });
   // legs
@@ -152,28 +163,53 @@ export function makeRat({ scale = 1, brood = false } = {}) {
 
 export function makeCrawler() {
   const g = new THREE.Group();
-  const pale = 0xa9a590;
-  const pale2 = 0x8e8a75;
-  // low, long body
-  box(0.5, 0.32, 1.0, pale2, 0, 0.6, 0, g);
-  sphere(0.24, 8, 6, pale, 0, 0.73, 0.48, g, { sx: 1.2, sy: 0.95, sz: 0.9 });
-  // no face; black mouth
-  box(0.2, 0.08, 0.08, 0x0a0807, 0, 0.67, 0.63, g);
-  // long arms
-  for (const side of [-1, 1]) {
-    box(0.09, 0.75, 0.09, pale, side * 0.28, 0.38, 0.22, g, { rotX: -0.7, rotZ: side * 0.18 });
-    box(0.1, 0.22, 0.1, pale2, side * 0.33, 0.08, 0.52, g);
+  const pale = 0xb8b39d;
+  const pale2 = 0x9c9782;
+  const dark = 0x241d18;
+  // low, long body with an exposed spine
+  box(0.52, 0.34, 1.05, pale2, 0, 0.62, 0, g);
+  for (let i = 0; i < 5; i++) {
+    box(0.08, 0.1 + i * 0.012, 0.12, pale, 0, 0.82, -0.35 + i * 0.17, g, { rotX: -0.1 });
   }
-  // legs
+  // ribs
   for (const side of [-1, 1]) {
-    box(0.12, 0.5, 0.12, pale2, side * 0.18, 0.38, -0.38, g, { rotX: 0.7 });
-    box(0.16, 0.1, 0.3, pale2, side * 0.18, 0.06, -0.58, g);
+    for (let i = 0; i < 3; i++) {
+      box(0.05, 0.18, 0.05, 0x8c8774, side * 0.28, 0.61, -0.25 + i * 0.22, g, { rotZ: side * 0.45 });
+    }
   }
-  // too many joints: extra shoulders/spines
+  // elongated head
+  sphere(0.25, 8, 6, pale, 0, 0.76, 0.5, g, { sx: 1.25, sy: 0.9, sz: 1.0 });
+  box(0.3, 0.14, 0.24, pale2, 0, 0.69, 0.66, g);
+  box(0.2, 0.09, 0.09, 0x0a0807, 0, 0.65, 0.78, g);
+  // teeth
   for (const side of [-1, 1]) {
-    box(0.13, 0.13, 0.13, pale, side * 0.24, 0.64, 0.34, g);
+    for (let i = 0; i < 3; i++) {
+      cyl(0.008, 0.022, 0.09, 5, 0xd9d0b0, side * (0.025 + i * 0.03), 0.6, 0.8, g, { rotX: Math.PI });
+    }
   }
-  box(0.14, 0.2, 0.14, pale, 0, 0.62, -0.3, g, { rotX: 0.2 });
+  // black eye pits, no eyes
+  sphere(0.035, 6, 4, 0x080605, 0.09, 0.79, 0.72, g);
+  sphere(0.035, 6, 4, 0x080605, -0.09, 0.79, 0.72, g);
+  // long arms and claws
+  for (const side of [-1, 1]) {
+    box(0.1, 0.82, 0.1, pale, side * 0.3, 0.35, 0.22, g, { rotX: -0.75, rotZ: side * 0.2 });
+    box(0.11, 0.28, 0.11, pale2, side * 0.4, 0.04, 0.58, g);
+    for (let i = 0; i < 3; i++) {
+      box(0.025, 0.18, 0.025, 0x6b6556, side * (0.35 + i * 0.035), 0.03, 0.72, g, { rotX: 0.2 });
+    }
+  }
+  // back legs
+  for (const side of [-1, 1]) {
+    box(0.13, 0.55, 0.13, pale2, side * 0.2, 0.34, -0.4, g, { rotX: 0.78 });
+    box(0.17, 0.1, 0.34, pale2, side * 0.2, 0.05, -0.62, g);
+    for (let i = 0; i < 3; i++) {
+      box(0.025, 0.11, 0.025, 0x6b6556, side * (0.12 + i * 0.04), 0.02, -0.78, g, { rotX: -0.2 });
+    }
+  }
+  // extra shoulder joints
+  for (const side of [-1, 1]) {
+    box(0.15, 0.15, 0.15, pale, side * 0.24, 0.66, 0.36, g);
+  }
   g.rotation.x = -0.08;
   return g;
 }
@@ -209,6 +245,32 @@ export function makeRifle() {
 
 export function makeScavenger({ coat = 0x2a2b25, gun = true } = {}) {
   const g = makeHumanoid({ coat, pants: 0x181d1a, hair: 0x1e1711 });
+  // hood and shoulder rags
+  box(0.3, 0.16, 0.28, 0x1f2420, 0, 1.58, -0.02, g);
+  box(0.36, 0.12, 0.3, 0x232a25, 0.02, 1.5, -0.03, g, { rotZ: 0.04 });
+  box(0.46, 0.08, 0.26, 0x20261f, 0, 1.26, 0, g);
+  // respirator mask
+  box(0.2, 0.15, 0.14, 0x141a17, 0, 1.41, 0.12, g);
+  for (const side of [-1, 1]) {
+    cyl(0.052, 0.052, 0.1, 7, 0x2d3530, side * 0.075, 1.36, 0.2, g, { rotX: Math.PI / 2 });
+    cyl(0.058, 0.058, 0.025, 7, 0x0c1110, side * 0.075, 1.36, 0.255, g, { rotX: Math.PI / 2 });
+  }
+  box(0.06, 0.03, 0.03, 0x0b0f0d, 0, 1.46, 0.2, g);
+  // goggle lenses, sickly and reflective
+  for (const side of [-1, 1]) {
+    cyl(0.052, 0.052, 0.025, 8, 0x7d2a1a, side * 0.062, 1.51, 0.135, g, { rotX: Math.PI / 2, material: basic(0x8a3420) });
+    cyl(0.064, 0.064, 0.018, 8, 0x2a211a, side * 0.062, 1.51, 0.12, g, { rotX: Math.PI / 2 });
+  }
+  // head strap and hose
+  box(0.29, 0.035, 0.06, 0x181d1a, 0, 1.52, 0.02, g);
+  cyl(0.022, 0.022, 0.36, 5, 0x171d1a, 0.14, 1.22, 0.14, g, { rotX: 0.25, rotZ: -0.5 });
+  // air tank on the back
+  cyl(0.08, 0.08, 0.46, 7, 0x37413b, -0.05, 1.08, -0.18, g);
+  cyl(0.085, 0.085, 0.03, 7, 0x161c19, -0.05, 1.32, -0.18, g);
+  cyl(0.085, 0.085, 0.03, 7, 0x161c19, -0.05, 0.84, -0.18, g);
+  // belt kit
+  box(0.28, 0.06, 0.1, 0x191f1b, 0, 0.78, 0.12, g);
+  box(0.1, 0.16, 0.08, 0x2d352f, 0.18, 0.74, 0.12, g, { rotZ: 0.1 });
   if (gun) {
     const rifle = makeRifle();
     rifle.scale.set(0.9, 0.9, 0.9);

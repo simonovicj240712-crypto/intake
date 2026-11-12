@@ -22,17 +22,26 @@ Then open <http://127.0.0.1:8000/>.
 
 ## Current build
 
-This is the **first complete playable campaign pass** — a condensed version of the full 3–3.5 hour design. All major story beats are in:
+This is the **complete playable campaign pass** — a condensed version of the full 3–3.5 hour design. All major story beats are in:
 
-- **Prologue — The Last Dinner.** Family dinner, the alarm, the Tenant in the corner, the first flashback, the Broodmother under the floor, Tokar's rescue.
+- **Prologue — The Last Dinner.** A playable family dinner, the alarm, the Tenant in the corner, the first flashback, the Broodmother under the floor, Tokar's rescue.
 - **Kryl Station.** Tokar, the first pistol, and the descent.
 - **Act I — The Descent.** First vent, body looting, and the first Crawler jumpscare.
-- **The Dead Rail.** Open rail yard, scavengers, rats, the gate to Zarya, and the Passenger Car vision.
+- **The Dead Rail.** Open rail yard, ruined skyline, scavengers, rats, the gate to Zarya, and the Passenger Car vision.
 - **Zarya Station.** Vera's shop, the shotgun and rifle, ammo, medkits, and the lower-platform vision.
-- **The Deep.** The Warren, the Flooded Duct, the Dead Fan, and the safe room.
-- **The Lair.** The nest, the valves, the watchers, and the Mirror vision.
-- **The Last Crawl.** A quiet vent run to Sanctuary Intake 04.
+- **The Deep.** Branching vent mazes: the Warren (fuses), the Flooded Duct (valves), the Dead Fan, and the safe room.
+- **The Lair.** A larger maze, the valves, the watchers, and the Mirror vision.
+- **The Last Crawl.** A forced-crawl vent run with a Tenant sighting, a final Crawler, and the Sanctuary hatch.
 - **The Nest.** The ending. No retry.
+
+The current pass also includes:
+
+- **3D memory dioramas** instead of text-only flashbacks. Press **E** or click to let go of a memory.
+- **Branching vent mazes** with dead ends, loops, wall signage, pipes, grates, crates, and flickering lights.
+- **A title-screen diorama** behind the main menu.
+- **A minimal HUD** for health, medkits, MGR, logs, current weapon, and ammo.
+- **Aim-down-sights**, hit markers, enemy line-of-sight, spawn grace, and melee damage.
+- **Ceiling Crawler sightings** and ambush scares in the deep vents.
 
 The full 3–3.5 hour design — more logs, side jobs, city detail, expanded Deep chapter, and more hallucinations — is in [`DESIGN.md`](DESIGN.md). This build is the foundation; future updates will expand it.
 
@@ -47,13 +56,13 @@ The full 3–3.5 hour design — more logs, side jobs, city detail, expanded Dee
 | **F** | Flashlight |
 | **Ctrl** | Crouch / crawl |
 | **Shift** | Sprint |
-| **E / Enter** | Interact / loot / advance dialogue |
+| **E / Enter** | Interact / loot / advance dialogue / let go of a memory |
 | **1 / 2 / 3** | Pistol / shotgun / rifle |
 | **R** | Reload |
 | **T** | Check magazine and reserve |
 | **H** | Use medkit |
 | **V** | Knife / break a Crawler grab |
-| **Esc** | Pause / release mouse |
+| **Esc** | Release the mouse / close the shop |
 
 ## Content warning
 
@@ -65,7 +74,8 @@ These are development shortcuts and do not affect normal play:
 
 - `?scene=dead_rail`, `?scene=zarya`, `?scene=warren`, `?scene=flooded`, `?scene=fan`, `?scene=safe_room`, `?scene=lair`, `?scene=last_crawl`, `?scene=nest`.
 - `?scene=vent`, `?scene=kryl`.
-- In the console: `__intake.snapshot()`, `__intake.goto("zarya")`, `__intake.step(0.1)`, `__intake.addMgr(50)`, `__intake.give("shotgun")`, `__intake.heal()`.
+- In the console: `__intake.snapshot()`, `__intake.goto("zarya")`, `__intake.step(0.1)`, `__intake.worldInfo()`, `__intake.interact()`, `__intake.addMgr(50)`, `__intake.give("shotgun")`, `__intake.heal()`, `__intake.damage(10)`, `__intake.scare()`, `__intake.jumpscareHit()`.
+- Test hooks: `__intake.setHealth(n)`, `__intake.setPos(x, z)`, `__intake.look(yaw, pitch)`, `__intake.fire()`, `__intake.reload()`, `__intake.melee()`, `__intake.die()`, `__intake.kill()`.
 
 ## Tech
 
@@ -82,10 +92,10 @@ The flat-shaded low-poly **look** is inspired by *Fury Foot*. No Fury Foot mecha
 
 ## Roadmap
 
-1. **Current:** complete campaign pass (condensed).
-2. **Next:** expand the Dead Rail and Zarya, add side jobs and more logs.
+1. **Current:** complete campaign pass with 3D memories, branching mazes, HUD, and mouse-look.
+2. **Next:** more side rooms and logs, expanded Dead Rail/Zarya, and more vision variants.
 3. **Then:** expand the Deep into the full Warren, Flooded Duct, and Dead Fan acts.
-4. **Finally:** more hallucination variants, more corpse interactions, audio/lighting polish, and accessibility passes.
+4. **Finally:** animation polish, more creature behaviors, accessibility options, and balance passes.
 
 ## Credits
 

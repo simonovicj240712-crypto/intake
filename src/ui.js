@@ -10,6 +10,17 @@ export class UI {
       subtitle: document.getElementById("subtitle"),
       prompt: document.getElementById("prompt"),
       crosshair: document.getElementById("crosshair"),
+      lookHint: document.getElementById("look-hint"),
+      hud: document.getElementById("hud"),
+      hudHealthBar: document.getElementById("hud-health-bar"),
+      hudHealth: document.getElementById("hud-health"),
+      hudMedkits: document.getElementById("hud-medkits"),
+      hudMgrNum: document.getElementById("hud-mgr-num"),
+      hudLogs: document.getElementById("hud-logs"),
+      hudWeaponName: document.getElementById("hud-weapon-name"),
+      hudAmmoNum: document.getElementById("hud-ammo-num"),
+      hudReserve: document.getElementById("hud-reserve"),
+      visionSkip: document.getElementById("vision-skip"),
       dialogue: document.getElementById("dialogue"),
       dialogueSpeaker: document.getElementById("dialogue-speaker"),
       dialogueText: document.getElementById("dialogue-text"),
@@ -41,6 +52,32 @@ export class UI {
     this.el.crosshair.classList.toggle("on", show);
   }
 
+  hitmark() {
+    this.el.crosshair.classList.add("hit");
+    clearTimeout(this.hitTimer);
+    this.hitTimer = setTimeout(() => this.el.crosshair.classList.remove("hit"), 120);
+  }
+
+  lookHint(show) {
+    this.el.lookHint.classList.toggle("on", show);
+  }
+
+  hud(show, data = null) {
+    this.el.hud.classList.toggle("on", show);
+    if (!show || !data) return;
+    this.el.hudHealthBar.style.width = `${Math.max(0, Math.min(100, data.health))}%`;
+    this.el.hudHealthBar.style.background = data.health <= 30
+      ? "linear-gradient(90deg, #7d1f16, #d06a3a)"
+      : "linear-gradient(90deg, #9e4a2a, #85a66a)";
+    this.el.hudHealth.textContent = String(Math.round(data.health));
+    this.el.hudMedkits.textContent = `+${data.medkits} MED`;
+    this.el.hudMgrNum.textContent = String(data.mgr);
+    this.el.hudLogs.textContent = String(data.logs);
+    this.el.hudWeaponName.textContent = data.weaponName;
+    this.el.hudAmmoNum.textContent = String(data.ammo);
+    this.el.hudReserve.textContent = data.reserve;
+  }
+
   subtitle(text, ms = 2600) {
     clearTimeout(this.subTimer);
     this.el.subtitle.textContent = text;
@@ -51,6 +88,7 @@ export class UI {
   clearSubtitle() {
     clearTimeout(this.subTimer);
     this.el.subtitle.classList.remove("on");
+    this.el.subtitle.textContent = "";
   }
 
   prompt(html) {
@@ -146,6 +184,10 @@ export class UI {
     }
   }
 
+  visionSkip(show) {
+    this.el.visionSkip.classList.toggle("on", show);
+  }
+
   death(show) {
     this.el.death.classList.toggle("on", show);
   }
@@ -198,5 +240,7 @@ export class UI {
     this.el.vision.classList.remove("on");
     this.el.shop.classList.remove("on");
     this.el.hurt.classList.remove("on");
+    this.el.lookHint.classList.remove("on");
+    this.el.visionSkip.classList.remove("on");
   }
 }
