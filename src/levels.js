@@ -9,13 +9,14 @@ import {
   toonMat,
   surfaceTexture,
   addGlow,
+  addLightShaft,
   pointLight,
   makeHumanoid,
   makeRat,
   makeTenant,
   makeCrawler,
   makeScavenger,
-} from "./world.js?v=10";
+} from "./world.js?v=11";
 
 function vec(x, y, z) {
   return new THREE.Vector3(x, y, z);
@@ -49,11 +50,14 @@ function pipes(group, zSpan = 10, x = 0, y = 2.8) {
   }
 }
 
-function emergencyLamps(group, count, zStart, zStep, x = 0, color = 0x7fa36a, intensity = 0.8) {
+function emergencyLamps(group, count, zStart, zStep, x = 0, color = 0x7fa36a, intensity = 0.8, y = 2.2) {
   for (let i = 0; i < count; i++) {
     const z = zStart - i * zStep;
-    box(0.18, 0.06, 0.3, color, x, 2.2, z, group, { material: basic(color) });
-    pointLight(color, intensity, 5, x, 2.0, z, group, { decay: 1.6 });
+    cyl(0.012, 0.012, 0.35, 4, 0x1a211d, x, y + 0.2, z, group);
+    box(0.28, 0.06, 0.4, 0x1a211d, x, y + 0.05, z, group);
+    box(0.18, 0.06, 0.3, color, x, y, z, group, { material: basic(color) });
+    addGlow(group, color, x, y - 0.05, z, 0.5, 0.2);
+    pointLight(color, intensity, 5, x, y - 0.2, z, group, { decay: 1.6 });
   }
 }
 
@@ -218,6 +222,53 @@ export function buildDeadRail() {
     box(24, 0.08, 0.12, 0x4b4d45, 0, 0.04, -3 + i * 1.2, group);
     box(24, 0.08, 0.12, 0x3a3c36, 0, 0.04, 2 + i * 1.2, group);
   }
+  // sleepers
+  for (let x = -11.5; x <= 11.5; x += 1.25) {
+    box(0.18, 0.06, 1.35, 0x3a2c20, x, 0.02, -2.4, group);
+    box(0.18, 0.06, 1.35, 0x3a2c20, x, 0.02, 2.6, group);
+  }
+  // overhead gantry
+  for (const side of [-1, 1]) {
+    box(0.4, 5.2, 0.4, 0x2a3530, side * 12, 2.6, -1, group);
+    box(0.18, 2.2, 0.18, 0x1c2420, side * 10.8, 3.9, -1, group, { rotZ: side * 0.5 });
+  }
+  box(24.6, 0.35, 0.42, 0x2a3530, 0, 5.0, -1, group);
+  box(24.6, 0.12, 0.5, 0xc05a26, 0, 4.75, -1, group);
+  plane(3.2, 0.85, 0xffffff, 0, 3.9, -0.76, group, { material: signMaterial("DEAD RAIL", "#ffe08a") });
+  addGlow(group, 0xffd27a, 0, 3.9, -0.7, 1.2, 0.18);
+  for (const x of [-1.2, 1.2]) {
+    cyl(0.012, 0.012, 1.0, 4, 0x1a211d, x, 4.45, -0.9, group);
+  }
+  for (const x of [-6, 6]) {
+    box(0.22, 0.08, 0.3, 0xffb765, x, 4.65, -0.8, group, { material: basic(0xffb765) });
+    addGlow(group, 0xffb765, x, 4.65, -0.8, 0.7, 0.22);
+  }
+  // stacked freight containers
+  for (const [x, z, color, stack] of [[-10.2, 4.2, 0x2f6f66, 2], [10.0, -4.4, 0x9a4a28, 1]]) {
+    for (let k = 0; k < stack; k++) {
+      const y = 1.2 + k * 2.45;
+      box(2.5, 2.4, 5.2, color, x, y, z, group);
+      for (let j = 0; j < 9; j++) {
+        box(2.56, 0.06, 0.08, 0x1a2420, x, 0.25 + j * 0.26 + k * 2.45, z - 2.5, group);
+        box(2.56, 0.06, 0.08, 0x1a2420, x, 0.25 + j * 0.26 + k * 2.45, z + 2.5, group);
+      }
+      box(2.56, 0.12, 5.26, 0x1a2420, x, 2.35 + k * 2.45, z, group);
+      for (let j = 0; j < 10; j++) {
+        box(0.04, 2.2, 0.07, 0x1a2420, x - 1.27, y, z - 2.35 + j * 0.52, group);
+        box(0.04, 2.2, 0.07, 0x1a2420, x + 1.27, y, z - 2.35 + j * 0.52, group);
+      }
+    }
+    colliders.push({ minX: x - 1.3, maxX: x + 1.3, minZ: z - 2.7, maxZ: z + 2.7 });
+  }
+  // signal masts
+  for (const [x, z, color] of [[-9.5, -6.5, 0x9e3a24], [9.5, 6.5, 0x7fa36a]]) {
+    cyl(0.08, 0.08, 4.4, 6, 0x2a3530, x, 2.2, z, group);
+    box(0.35, 0.7, 0.3, 0x1a2420, x, 4.1, z, group);
+    sphere(0.09, 6, 5, color, x, 4.3, z + 0.18, group, { material: basic(color) });
+    pointLight(color, 2.6, 8, x, 4.2, z, group, { decay: 1.5 });
+    addGlow(group, color, x, 4.3, z + 0.2, 0.8, 0.26);
+    addLightShaft(group, color, x, 4.25, z, 4.2, 0.7, 0.026);
+  }
   // train cars
   for (const [x, z, rotY] of [[-6, -2, 0], [5, 3, Math.PI], [7, -5, 0]]) {
     const car = new THREE.Group();
@@ -234,6 +285,16 @@ export function buildDeadRail() {
   for (let i = 0; i < 18; i++) {
     box(0.5 + Math.random(), 0.15, 0.4 + Math.random(), 0x33291e, (Math.random() - 0.5) * 20, 0.06, (Math.random() - 0.5) * 17, group, { rotY: Math.random() * 3 });
   }
+  // puddles around the yard
+  for (let i = 0; i < 9; i++) {
+    const m = new THREE.MeshLambertMaterial({ color: 0x1a2a2c, transparent: true, opacity: 0.45 });
+    plane(1.2 + Math.random() * 1.8, 0.8 + Math.random() * 1.0, 0xffffff,
+      (Math.random() - 0.5) * 20, 0.014, (Math.random() - 0.5) * 16, group,
+      { rotX: -Math.PI / 2, rotZ: Math.random() * 3, material: m });
+  }
+  for (const x of [-6, 6]) {
+    addLightShaft(group, 0xffb765, x, 4.6, -0.8, 4.5, 0.65, 0.025);
+  }
   // gate
   const gate = door(group, 0, -9.6, "GATE");
   for (let i = 0; i < 8; i++) box(0.06, 2.2, 0.1, 0x55605a, -1.2 + i * 0.34, 1.1, -9.48, group);
@@ -242,6 +303,10 @@ export function buildDeadRail() {
     pointLight(0x8aa4a2, 2.2, 9, x, 3.4, z, group, { decay: 1.5 });
     box(0.14, 0.05, 0.4, 0x8fb2ae, x, 3.55, z, group, { material: basic(0x8fb2ae) });
     addGlow(group, 0x9ac2bc, x, 3.55, z, 1.2, 0.28);
+    if (x !== 0) {
+      cyl(0.04, 0.04, 3.5, 6, 0x2a3530, x, 1.75, z, group);
+      box(0.22, 0.05, 0.3, 0x1a2420, x, 3.52, z, group);
+    }
   }
   // ruined skyline beyond the yard
   const towerMat = mat(0x0a1210);
@@ -465,10 +530,10 @@ export function buildZarya() {
   };
 }
 
-function basicVentLevel({ name, w = 12, d = 14, spawnZ = 5.5, exitZ = -5.8, color = 0x7fa36a, intensity = 0.8 } = {}) {
-  const { group, colliders } = ventShell({ w, d, floor: 0x242b27, wall: 0x29322d });
-  pipes(group, d - 1.5, 0, 2.8);
-  emergencyLamps(group, 4, spawnZ - 1, 3.8, 0, color, intensity);
+function basicVentLevel({ name, w = 12, d = 14, h = 3.2, spawnZ = 5.5, exitZ = -5.8, color = 0x7fa36a, intensity = 0.8 } = {}) {
+  const { group, colliders } = ventShell({ w, d, h, floor: 0x242b27, wall: 0x29322d });
+  pipes(group, d - 1.5, -w / 2 + 0.45, h - 0.4);
+  emergencyLamps(group, 4, spawnZ - 1, 3.8, 0, color, intensity, h - 1.0);
   // side vents / grates
   for (let i = 0; i < 4; i++) {
     const z = spawnZ - 2 - i * 3;
@@ -564,22 +629,162 @@ export function buildFlooded() {
 }
 
 export function buildFan() {
-  const base = basicVentLevel({ w: 16, d: 18, spawnZ: 7.2, exitZ: -7.8, color: 0x8fa36a, intensity: 0.8 });
+  const base = basicVentLevel({ w: 16, d: 18, h: 5.4, spawnZ: 7.2, exitZ: -7.8, color: 0x9bd0a0, intensity: 1.0 });
   const { group, colliders, exit } = base;
-  // fan housing at center / far
-  const fan = new THREE.Group();
-  cyl(0.6, 0.6, 1.2, 10, 0x3b4641, 0, 2.0, 0, fan, { rotX: Math.PI / 2 });
-  for (let i = 0; i < 5; i++) {
-    box(0.24, 2.4, 0.1, 0x8a958c, 0, 2.0, 0, fan, { rotZ: (Math.PI / 5) * i });
+  const fanZ = -4.8;
+  const fanY = 2.55;
+
+  // tall wall ribs and pipe runs
+  for (const side of [-1, 1]) {
+    for (const z of [-7, -4.5, -2, 0.5, 3, 5.5]) {
+      box(0.12, 5.1, 0.18, 0x2a3832, side * 7.9, 2.55, z, group);
+    }
+    for (const y of [1.1, 2.6, 4.15]) {
+      box(0.08, 0.12, 18, 0x2a3530, side * 7.92, y, 0, group);
+    }
+    cyl(0.07, 0.07, 17, 6, 0x3f7a6c, side * 7.8, 4.6, 0, group, { rotX: Math.PI / 2 });
+    cyl(0.05, 0.05, 17, 6, 0xc05a26, side * 7.7, 4.35, 0, group, { rotX: Math.PI / 2 });
   }
-  fan.position.set(0, 0, -4.2);
+
+  // huge circular fan housing and duct
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.45, 0.22, 8, 24), toonMat(0x2a3832));
+  ring.position.set(0, fanY, fanZ);
+  group.add(ring);
+  const backRing = new THREE.Mesh(new THREE.TorusGeometry(2.35, 0.18, 8, 24), toonMat(0x1b2621));
+  backRing.position.set(0, fanY, fanZ - 1.8);
+  group.add(backRing);
+  const backing = new THREE.Mesh(new THREE.CircleGeometry(2.3, 24), toonMat(0x0b100e));
+  backing.position.set(0, fanY, fanZ - 0.12);
+  group.add(backing);
+  const duct = new THREE.Mesh(new THREE.CylinderGeometry(2.35, 2.35, 2.6, 20, 1, true), toonMat(0x1b2621));
+  duct.rotation.x = Math.PI / 2;
+  duct.position.set(0, fanY, fanZ - 1.4);
+  group.add(duct);
+
+  // spinning blades
+  const fan = new THREE.Group();
+  fan.position.set(0, fanY, fanZ + 0.12);
+  cyl(0.38, 0.38, 0.3, 10, 0x141c18, 0, 0, 0, fan, { rotX: Math.PI / 2 });
+  const bladeMat = toonMat(0x9aa99b);
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI * 2 / 6) * i;
+    box(1.9, 0.34, 0.08, 0x9aa99b, Math.cos(a) * 0.95, Math.sin(a) * 0.95, 0, fan, { rotZ: a, material: bladeMat });
+    box(0.18, 0.16, 0.1, 0xd9782f, Math.cos(a) * 1.78, Math.sin(a) * 1.78, 0, fan, { rotZ: a });
+  }
   group.add(fan);
+  // front grille
+  for (let i = 0; i < 3; i++) {
+    box(4.6, 0.05, 0.06, 0x1a2420, 0, fanY, fanZ + 0.4, group, { rotZ: (Math.PI / 3) * i });
+  }
+
+  // fan warning lights
+  pointLight(0xff7a2a, 4.5, 10, 0, fanY + 2.3, fanZ, group, { decay: 1.3 });
+  addGlow(group, 0xff7a2a, 0, fanY + 2.3, fanZ, 1.5, 0.28);
+  for (const side of [-1, 1]) {
+    box(0.16, 0.16, 0.08, 0xff3a1a, side * 2.35, fanY + 1.2, fanZ + 0.3, group, { material: basic(0xff3a1a) });
+    pointLight(0xff3a1a, 2.2, 6, side * 2.35, fanY + 1.2, fanZ + 0.3, group, { decay: 1.5 });
+    addGlow(group, 0xff3a1a, side * 2.35, fanY + 1.2, fanZ + 0.3, 0.7, 0.26);
+  }
+
+  // back-wall duct panel and fan sign
+  box(2.4, 1.2, 0.2, 0x1b2621, 0, 4.6, -7.85, group);
+  for (let i = 0; i < 4; i++) {
+    box(2.2, 0.06, 0.05, 0x3a4a42, 0, 4.2 + i * 0.24, -7.72, group);
+  }
+
+  // catwalk railings
+  for (const side of [-1, 1]) {
+    for (let z = -6.2; z <= 0.2; z += 2.1) {
+      cyl(0.05, 0.05, 1.1, 5, 0x3a4a42, side * 4.4, 0.55, z, group);
+    }
+    box(0.1, 0.08, 6.6, 0x3a4a42, side * 4.4, 1.1, -3, group);
+    box(0.08, 0.06, 6.6, 0x2a3530, side * 4.4, 0.7, -3, group);
+  }
+  // overhead beams and floodlights
+  for (const z of [-2.8, 2.8]) {
+    box(15.8, 0.15, 0.2, 0x1c2420, 0, 4.9, z, group);
+  }
+  for (const side of [-1, 1]) {
+    box(0.2, 0.15, 17, 0x1c2420, side * 6.2, 4.9, 0, group);
+  }
+  for (const [x, z] of [[-4.5, -2.8], [4.5, -2.8]]) {
+    box(0.32, 0.22, 0.32, 0x1a2420, x, 4.78, z, group);
+    box(0.22, 0.08, 0.22, 0xffd27a, x, 4.63, z, group, { material: basic(0xffd27a) });
+    pointLight(0xffd27a, 3.6, 10, x, 4.4, z, group, { decay: 1.4 });
+    addGlow(group, 0xffd27a, x, 4.65, z, 0.8, 0.24);
+    addLightShaft(group, 0xffd27a, x, 4.6, z, 4.5, 0.8, 0.022);
+  }
+  // hanging chain hoist
+  for (let i = 0; i < 8; i++) {
+    cyl(0.02, 0.02, 0.2, 4, 0x3a423c, 0, 4.65 - i * 0.21, -1.5, group);
+  }
+  box(0.16, 0.12, 0.3, 0x2a3530, 0, 2.95, -1.5, group);
+  box(0.12, 0.22, 0.12, 0x1a2420, 0, 2.8, -1.5, group);
+  // floor guide stripes
+  for (const z of [5.2, 3.8, 2.4]) {
+    plane(2.0, 0.4, 0xffffff, 0, 0.018, z, group, { rotX: -Math.PI / 2, material: hazardMaterial() });
+  }
+  // fan sign above the ring
+  plane(2.0, 0.5, 0xffffff, 0, 5.15, -7.72, group, { material: signMaterial("FAN 03", "#ffe08a") });
+
+  // control station
   const consoleBox = new THREE.Group();
-  box(1.2, 1.0, 0.7, 0x303a34, 0, 0.5, 0, consoleBox);
-  box(0.6, 0.25, 0.06, 0x8fbf7a, 0, 0.85, 0.38, consoleBox, { material: basic(0x8fbf7a) });
+  box(1.5, 0.9, 0.85, 0x2a3933, 0, 0.45, 0, consoleBox);
+  box(1.6, 0.12, 0.9, 0x1a2420, 0, 0.96, 0, consoleBox, { rotX: 0.18 });
+  box(0.7, 0.2, 0.04, 0x8fe0c0, 0, 0.8, 0.44, consoleBox, { material: basic(0x8fe0c0) });
+  for (let i = 0; i < 5; i++) {
+    box(0.08, 0.05, 0.05, i % 2 ? 0xffb765 : 0xff3a1a, -0.5 + i * 0.24, 1.02, 0.22, consoleBox, { material: basic(i % 2 ? 0xffb765 : 0xff3a1a) });
+  }
+  cyl(0.045, 0.045, 0.4, 6, 0x1a2420, 0.55, 1.05, 0.12, consoleBox, { rotZ: -0.4 });
+  sphere(0.075, 6, 5, 0xd9782f, 0.62, 1.22, 0.12, consoleBox);
   consoleBox.position.set(4.8, 0, -2.6);
   group.add(consoleBox);
-  pointLight(0x7fa36a, 1.4, 5, 4.8, 1.5, -2.6, group, { decay: 1.5 });
+  pointLight(0x8fe0c0, 2.6, 6, 4.8, 1.4, -2.6, group, { decay: 1.4 });
+  addGlow(group, 0x8fe0c0, 4.8, 1.15, -2.2, 0.8, 0.22);
+
+  // wall signage and floor hazard markings
+  plane(1.5, 0.65, 0xffffff, -7.82, 2.6, -3.4, group, { rotY: Math.PI / 2, material: signMaterial("DANGER", "#ff8a6a") });
+  plane(7.2, 0.55, 0xffffff, 0, 0.02, -1.9, group, { rotX: -Math.PI / 2, material: hazardMaterial() });
+  plane(7.2, 0.55, 0xffffff, 0, 0.02, -2.9, group, { rotX: -Math.PI / 2, material: hazardMaterial() });
+
+  // crates, barrels, wall fans, steam
+  addCrate(group, colliders, -6.8, 4.8, 0.72);
+  addCrate(group, colliders, -6.4, 3.5, 0.55);
+  addCrate(group, colliders, 6.6, 4.7, 0.66);
+  addBarrel(group, colliders, 6.7, -5.3);
+  addBarrel(group, colliders, -6.7, -5.6);
+  addCrate(group, colliders, -3.2, 5.6, 0.62);
+  addCrate(group, colliders, 3.4, 5.6, 0.55);
+  // wheeled tool cart
+  box(1.2, 0.1, 0.65, 0x3a4a42, 4.6, 0.85, 3.2, group);
+  for (const x of [4.1, 5.1]) {
+    for (const z of [2.95, 3.45]) {
+      cyl(0.08, 0.08, 0.06, 8, 0x121714, x, 0.08, z, group, { rotX: Math.PI / 2 });
+      box(0.05, 0.78, 0.05, 0x2a3530, x, 0.46, z, group);
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    box(0.1, 0.06, 0.26, i % 2 ? 0x4c554d : 0x2a302c, 4.15 + i * 0.22, 0.95, 3.2, group);
+  }
+  colliders.push({ minX: 4.0, maxX: 5.2, minZ: 2.85, maxZ: 3.55 });
+  // hanging chains
+  for (const [x, z] of [[-3.6, 2.0], [3.7, 0.2], [-4.2, -3.8]]) {
+    for (let i = 0; i < 5; i++) {
+      cyl(0.025, 0.025, 0.28, 5, 0x3a423c, x, 4.9 - i * 0.3, z, group);
+    }
+  }
+  // floor puddles
+  for (let i = 0; i < 5; i++) {
+    const m = new THREE.MeshLambertMaterial({ color: 0x16332c, transparent: true, opacity: 0.42 });
+    plane(1.2 + Math.random() * 1.2, 0.7 + Math.random() * 0.8, 0xffffff,
+      (Math.random() - 0.5) * 11, 0.012, (Math.random() - 0.5) * 12, group,
+      { rotX: -Math.PI / 2, rotZ: Math.random() * 3, material: m });
+  }
+  addWallFan(group, -7.85, 2.3, 2.0, Math.PI / 2);
+  addWallFan(group, 7.85, 2.3, 3.2, -Math.PI / 2);
+  addLightShaft(group, 0x9ab8a8, 0, 2.2, fanZ + 0.4, 3.4, 1.7, 0.04);
+  addLightShaft(group, 0xff7a2a, 0, fanY + 2.2, fanZ + 0.2, 3.0, 1.1, 0.035);
+
   const bodies = [
     { group: body(group, -5.2, 2.4, 0.6), loot: { mgr: 8, ammo: 8 } },
     { group: body(group, 3.8, 4.4, -1.1), loot: { mgr: 4, medkit: 1 } },
@@ -604,26 +809,125 @@ export function buildFan() {
       ...bodies.map(b => ({ kind: "body", pos: b.group.position.clone(), radius: 1.8, loot: b.loot, group: b.group, looted: false })),
     ],
     triggers: [{ kind: "crawler", pos: vec(0, 0, -3.4), radius: 2.0, crawler, once: true }],
-    fog: { color: 0x07100a, density: 0.055 },
-    ambient: { color: 0x4b5a44, intensity: 0.55 },
-    background: 0x030504,
+    fog: { color: 0x0a1a14, density: 0.03 },
+    ambient: { color: 0x5a7a66, intensity: 0.9 },
+    background: 0x06110c,
     name: "fan",
   };
 }
 
 export function buildSafeRoom() {
   const { group, colliders } = ventShell({ w: 8, d: 8, h: 3.0, floor: 0x26231d, wall: 0x2b302a, ceiling: 0x171b18 });
-  const lamp = pointLight(0xffb36a, 5, 7, 0, 2.3, 0, group, { decay: 1.4 });
-  box(0.3, 0.4, 2.6, 0x3f2e20, 0, 0.2, -2.4, group);
-  box(0.8, 0.15, 1.4, 0x5b4029, 0, 0.5, -1.8, group);
-  box(1.4, 1.9, 0.4, 0x303a34, -2.8, 0.95, -1.0, group);
-  box(0.5, 0.4, 0.12, 0x8fbf7a, -2.6, 1.5, -0.79, group, { material: basic(0x8fbf7a) });
+
+  // ceiling beams and cable runs
+  for (const x of [-3, -1, 1, 3]) {
+    box(0.12, 0.12, 8, 0x1c2420, x, 2.9, 0, group);
+  }
+  cyl(0.04, 0.04, 7.6, 6, 0x3f7a6c, -3.7, 2.8, 0, group, { rotX: Math.PI / 2 });
+  cyl(0.03, 0.03, 7.6, 6, 0xc05a26, 3.65, 2.65, 0, group, { rotX: Math.PI / 2 });
+
+  // warm rug
+  plane(2.8, 2.0, 0xffffff, 0, 0.015, 0.1, group, { rotX: -Math.PI / 2, material: toonMat(0x2e1410) });
+  plane(2.2, 1.5, 0xffffff, 0, 0.018, 0.1, group, { rotX: -Math.PI / 2, material: toonMat(0x142420) });
+
+  // bunk along the left wall
+  box(1.0, 0.14, 2.2, 0x3f2e20, -3.0, 0.45, -0.8, group);
+  for (const [x, z] of [[-3.4, -1.75], [-2.6, -1.75], [-3.4, 0.15], [-2.6, 0.15]]) {
+    box(0.1, 0.45, 0.1, 0x2a1e14, x, 0.22, z, group);
+  }
+  box(0.92, 0.16, 2.05, 0x71745f, -3.0, 0.57, -0.8, group);
+  box(0.7, 0.14, 0.4, 0xc9c1aa, -3.0, 0.7, -1.5, group);
+  box(0.94, 0.07, 1.15, 0x8a3a2a, -3.0, 0.68, -0.35, group);
+  box(0.94, 0.06, 0.5, 0x2e5e56, -3.0, 0.66, -1.1, group);
+  colliders.push({ minX: -3.5, maxX: -2.5, minZ: -1.9, maxZ: 0.3 });
+
+  // desk, radio, maps, lamp
+  box(1.9, 0.1, 0.85, 0x5b4029, 1.85, 0.85, -2.65, group);
+  for (const [x, z] of [[1.1, -2.9], [2.6, -2.9], [1.1, -2.4], [2.6, -2.4]]) {
+    box(0.08, 0.82, 0.08, 0x3a2a1a, x, 0.42, z, group);
+  }
+  colliders.push({ minX: 0.85, maxX: 2.85, minZ: -3.1, maxZ: -2.2 });
   const radio = new THREE.Group();
   box(0.7, 0.4, 0.4, 0x2a302c, 0, 0.3, 0, radio);
   box(0.3, 0.15, 0.03, 0x8fbf7a, 0, 0.35, 0.21, radio, { material: basic(0x8fbf7a) });
-  radio.position.set(1.4, 0, -1.8);
+  cyl(0.018, 0.018, 0.5, 5, 0x1a211d, 0.24, 0.62, 0, radio, { rotZ: -0.3 });
+  radio.position.set(1.9, 0.95, -2.65);
   group.add(radio);
+  // papers / map on the desk
+  box(0.5, 0.02, 0.35, 0xc9bf9f, 1.25, 0.92, -2.55, group, { rotY: 0.2 });
+  box(0.4, 0.02, 0.3, 0xb8ae8e, 2.35, 0.92, -2.75, group, { rotY: -0.15 });
+  // desk lamp
+  cyl(0.03, 0.04, 0.55, 6, 0x2a302c, 2.55, 1.18, -2.75, group);
+  box(0.35, 0.16, 0.25, 0x3a2c20, 2.55, 1.48, -2.75, group);
+  pointLight(0xffc078, 3.2, 5, 2.55, 1.4, -2.75, group, { decay: 1.35 });
+  addGlow(group, 0xffc078, 2.55, 1.42, -2.75, 0.7, 0.24);
+  // chair
+  box(0.5, 0.08, 0.5, 0x3a2a1a, 1.75, 0.45, -1.8, group);
+  box(0.5, 0.55, 0.08, 0x3a2a1a, 1.75, 0.72, -2.05, group);
+  for (const [x, z] of [[1.55, -2.0], [1.95, -2.0], [1.55, -1.6], [1.95, -1.6]]) {
+    box(0.06, 0.45, 0.06, 0x2a1e14, x, 0.22, z, group);
+  }
+
+  // wall shelves and supplies
+  for (const y of [1.25, 1.85]) {
+    box(3.0, 0.08, 0.35, 0x3a2c20, 0, y, -3.68, group);
+    for (let i = 0; i < 7; i++) {
+      const color = i % 3 === 0 ? 0x8a3a2a : i % 3 === 1 ? 0x2e5e56 : 0xc9a04a;
+      cyl(0.07, 0.07, 0.18, 6, color, -1.25 + i * 0.42, y + 0.11, -3.68, group);
+    }
+  }
+  // medkit on the shelf
+  box(0.32, 0.2, 0.22, 0xc9c1aa, 2.2, 1.36, -3.64, group);
+  box(0.16, 0.04, 0.04, 0x9e4a2a, 2.2, 1.46, -3.5, group);
+
+  // posters and wall map
+  plane(1.5, 0.7, 0xffffff, 0, 2.5, -3.86, group, { material: signMaterial("SANCTUARY", "#8fe0c0") });
+  plane(1.2, 0.55, 0xffffff, -3.86, 2.2, 1.0, group, { rotY: Math.PI / 2, material: signMaterial("SEALED", "#ffd27a") });
+  for (const [x, y, z, ry] of [[-1.2, 2.25, -3.84, 0], [1.4, 2.35, -3.84, 0], [-3.84, 1.7, -1.8, Math.PI / 2]]) {
+    box(0.34, 0.26, 0.03, 0x8b7b5d, x, y, z, group, { rotY: ry });
+  }
+
+  // small stove and kettle
+  cyl(0.24, 0.28, 0.55, 8, 0x3a2a1e, 3.0, 0.28, -0.5, group);
+  cyl(0.2, 0.2, 0.05, 8, 0xff7a2a, 3.0, 0.56, -0.5, group, { material: basic(0xff7a2a) });
+  sphere(0.16, 7, 5, 0x3a3f38, 3.0, 0.75, -0.5, group, { sy: 0.7 });
+  cyl(0.02, 0.02, 0.22, 5, 0x2a302c, 3.16, 0.82, -0.5, group, { rotZ: -0.6 });
+  pointLight(0xff7a2a, 2.8, 6, 3.0, 0.8, -0.5, group, { decay: 1.4 });
+  addGlow(group, 0xff7a2a, 3.0, 0.7, -0.5, 0.8, 0.22);
+  addLightShaft(group, 0xb8c8b8, 3.0, 1.0, -0.5, 1.1, 0.24, 0.03);
+
+  // hanging ceiling lamp
+  cyl(0.025, 0.025, 0.45, 5, 0x191d1a, 0, 2.72, 0.2, group);
+  box(0.5, 0.12, 0.5, 0x2a302c, 0, 2.45, 0.2, group);
+  box(0.42, 0.05, 0.42, 0xffc078, 0, 2.38, 0.2, group, { material: basic(0xffc078) });
+  pointLight(0xffc078, 4.8, 7, 0, 2.2, 0.2, group, { decay: 1.35 });
+  addGlow(group, 0xffc078, 0, 2.4, 0.2, 1.1, 0.3);
+  addLightShaft(group, 0xffc078, 0, 2.4, 0.2, 2.4, 1.2, 0.04);
+
+  // string lights
+  for (const [x, z, color] of [[-2.2, 1.8, 0xffb765], [0, 1.9, 0x8fe0c0], [2.2, 1.8, 0xff8a6a]]) {
+    sphere(0.05, 6, 5, color, x, 2.65, z, group, { material: basic(color) });
+    addGlow(group, color, x, 2.65, z, 0.42, 0.22);
+  }
+
+  // curtains, crates and a water barrel
+  plane(2.0, 1.6, 0xffffff, 3.86, 1.9, 1.2, group, { rotY: -Math.PI / 2, material: toonMat(0x2e5e56, { transparent: true, opacity: 0.9, side: THREE.DoubleSide }) });
+  addCrate(group, colliders, -3.0, 2.8, 0.6);
+  addCrate(group, colliders, 3.1, 2.4, 0.55);
+  addBarrel(group, colliders, 2.9, 0.8);
+  // footlocker and armchair
+  box(0.8, 0.4, 0.5, 0x3a2c20, -2.4, 0.2, 1.4, group);
+  box(0.84, 0.06, 0.54, 0x5b4029, -2.4, 0.42, 1.4, group);
+  box(0.14, 0.08, 0.04, 0xc8a24a, -2.4, 0.43, 1.66, group);
+  box(0.8, 0.5, 0.72, 0x5a3a2a, 2.3, 0.3, 2.0, group);
+  box(0.8, 0.65, 0.18, 0x5a3a2a, 2.3, 0.75, 2.3, group);
+  for (const x of [1.9, 2.7]) {
+    box(0.12, 0.5, 0.7, 0x4a2f22, x, 0.5, 2.0, group);
+  }
+  addGlow(group, 0xffc078, 2.3, 0.8, 1.8, 0.5, 0.12);
+
   const exit = door(group, 0, 3.7, "VENT");
+  plane(1.5, 0.55, 0xffffff, 0, 2.8, 3.48, group, { rotY: Math.PI, material: signMaterial("KEEP SEALED", "#ffd27a") });
   const med = pickup(group, -1.8, 1.8, "medkit");
   const noteObj = note(group, 2.4, 1.4, "LOG 12: Mara stopped answering. The radio still hums.");
 
@@ -643,9 +947,9 @@ export function buildSafeRoom() {
     triggers: [
       { kind: "vision", pos: vec(0, 0, 0.4), radius: 1.8, visionId: 6, once: true },
     ],
-    fog: { color: 0x0b0a07, density: 0.035 },
-    ambient: { color: 0x8a6a4a, intensity: 0.7 },
-    background: 0x050403,
+    fog: { color: 0x0c0b07, density: 0.022 },
+    ambient: { color: 0x9a7a58, intensity: 0.95 },
+    background: 0x0a0806,
     name: "safe_room",
   };
 }
@@ -711,9 +1015,8 @@ export function buildLair() {
 
 export function buildLastCrawl() {
   const { group, colliders } = ventShell({ w: 3.0, d: 20, h: 2.1, floor: 0x242a27, wall: 0x29322d, ceiling: 0x111716 });
-  // force a crawl space with a low visual beam
-  box(2.4, 0.16, 19, 0x171d1a, 0, 1.05, 0, group);
-  pipes(group, 19, 0, 1.85);
+  // repeating low bulkheads create the crawl rhythm
+  // (the player is also mechanically forced to crawl here)
   emergencyLamps(group, 3, 7, 6, 0, 0x7fa36a, 0.5);
   // hanging cables and old filters
   for (let i = 0; i < 9; i++) {
@@ -724,6 +1027,54 @@ export function buildLastCrawl() {
     const z = -8.5 + i * 1.9;
     box(0.14 + Math.random() * 0.3, 0.03, 0.12 + Math.random() * 0.2, 0x8d8a75, (Math.random() - 0.5) * 2.0, 0.04, z, group, { rotY: Math.random() * 3 });
   }
+  // structural frames and low bulkheads
+  for (let z = 6.4; z >= -8.8; z -= 2.2) {
+    for (const side of [-1, 1]) {
+      box(0.1, 1.0, 0.14, 0x2b3530, side * 1.42, 0.52, z, group);
+      box(0.08, 0.85, 0.1, 0x1f2824, side * 1.4, 1.65, z, group);
+    }
+    box(2.9, 0.08, 0.14, 0x1c2420, 0, 1.95, z, group);
+    box(2.9, 0.16, 0.2, 0x111614, 0, 1.02, z, group);
+    box(0.18, 0.16, 0.22, 0x1b2420, -1.34, 1.02, z, group);
+    box(0.18, 0.16, 0.22, 0x1b2420, 1.34, 1.02, z, group);
+  }
+  // low pipe runs along the floor edges
+  cyl(0.035, 0.035, 18.5, 6, 0x2a3530, -1.4, 0.15, 0, group, { rotX: Math.PI / 2 });
+  cyl(0.035, 0.035, 18.5, 6, 0x2a3530, 1.4, 0.15, 0, group, { rotX: Math.PI / 2 });
+  // crawl-height wall signage and lights
+  plane(0.9, 0.38, 0xffffff, -1.36, 0.78, 5.2, group, { rotY: Math.PI / 2, material: signMaterial("CRAWL", "#ffe08a") });
+  plane(0.8, 0.35, 0xffffff, 1.36, 0.76, -2.0, group, { rotY: -Math.PI / 2, material: signMaterial("04", "#8fe0c0") });
+  plane(1.3, 0.4, 0xffffff, 0, 1.2, -9.28, group, { material: signMaterial("SANCTUARY", "#8fe0c0") });
+  for (const [x, z, color] of [[-1.36, 3.8, 0xffb765], [1.36, -0.8, 0xff8a6a], [-1.36, -5.6, 0x8fe0c0], [1.36, -8.6, 0xffd27a]]) {
+    box(0.06, 0.18, 0.36, color, x, 0.72, z, group, { material: basic(color) });
+    addGlow(group, color, x, 0.72, z, 0.55, 0.26);
+    pointLight(color, 1.6, 4.5, x, 0.8, z, group, { decay: 1.6 });
+    addLightShaft(group, color, x, 0.85, z, 0.8, 0.35, 0.035);
+  }
+  // floor grates, puddles and pipes
+  const grateMat = toonMat(0x4a5a52, { map: grateTexture() });
+  for (const z of [6.0, 2.0, -2.5, -7.0]) {
+    plane(1.8, 1.2, 0xffffff, 0, 0.014, z, group, { rotX: -Math.PI / 2, material: grateMat });
+  }
+  for (let i = 0; i < 5; i++) {
+    const m = new THREE.MeshLambertMaterial({ color: 0x16332c, transparent: true, opacity: 0.45 });
+    plane(0.9 + Math.random() * 0.8, 0.6 + Math.random() * 0.7, 0xffffff,
+      (Math.random() - 0.5) * 1.8, 0.012, -7 + Math.random() * 14, group,
+      { rotX: -Math.PI / 2, rotZ: Math.random() * 3, material: m });
+  }
+  cyl(0.035, 0.035, 18, 6, 0x2a3530, -1.34, 0.16, 0, group, { rotX: Math.PI / 2 });
+  cyl(0.03, 0.03, 18, 6, 0x3a2a1e, 1.34, 0.12, 0, group, { rotX: Math.PI / 2 });
+  // bodies and bones along the crawl
+  body(group, -0.95, 3.0, 0.8);
+  body(group, 0.92, -1.6, -1.1);
+  body(group, -0.92, -6.8, 0.4);
+  for (let i = 0; i < 16; i++) {
+    const z = -8.5 + Math.random() * 16;
+    const x = (Math.random() < 0.5 ? -1 : 1) * (0.95 + Math.random() * 0.25);
+    box(0.06 + Math.random() * 0.1, 0.03, 0.06 + Math.random() * 0.1, 0x8d8a75, x, 0.03, z, group, { rotY: Math.random() * 3 });
+  }
+  addMotes(group, 18, 1.7, 0xa8b8a8, 80);
+
   const exit = door(group, 0, -9.4, "SANCTUARY INTAKE");
   const noteObj = note(group, -0.8, -6.4, "LOG 14: Sanctuary is safe. Say it back.");
   // something waits where the light does not reach
@@ -756,9 +1107,9 @@ export function buildLastCrawl() {
       { kind: "crawler", pos: vec(0, 0, -3.6), radius: 1.8, crawler, once: true },
       { kind: "sighting", pos: vec(0, 0, -1.4), radius: 4.5, target: sighting2, once: true },
     ],
-    fog: { color: 0x04100c, density: 0.1 },
-    ambient: { color: 0x4a5a50, intensity: 0.42 },
-    background: 0x020404,
+    fog: { color: 0x08140f, density: 0.06 },
+    ambient: { color: 0x6a7a66, intensity: 0.78 },
+    background: 0x06100c,
     name: "last_crawl",
   };
 }
@@ -785,6 +1136,40 @@ export function buildNest() {
   for (let i = 0; i < 16; i++) {
     sphere(0.12, 6, 5, 0x8d8a75, -5 + Math.random() * 10, 0.1, -5 + Math.random() * 8, group, { sx: 1.2, sy: 0.7, sz: 1.0 });
   }
+  // organic central mound
+  sphere(2.4, 12, 8, 0x3a2a1e, 0, 0.5, -2.5, group, { sx: 1.35, sy: 0.55, sz: 1.1 });
+  sphere(1.6, 10, 7, 0x4a3324, 0.3, 0.8, -2.2, group, { sx: 1.2, sy: 0.7, sz: 1.0 });
+  const pods = [];
+  for (let i = 0; i < 10; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 1.2 + Math.random() * 3.2;
+    const p = sphere(0.22 + Math.random() * 0.2, 8, 6, i % 3 ? 0x6b5a45 : 0x4a3a2c,
+      Math.cos(a) * r, 0.35 + Math.random() * 0.5, -2.5 + Math.sin(a) * r, group, { sy: 1.4 });
+    pods.push(p);
+  }
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 1.5 + Math.random() * 4;
+    cyl(0.04, 0.07, 0.6 + Math.random() * 1.2, 5, 0x4a3324,
+      Math.cos(a) * r, 0.3, -2.5 + Math.sin(a) * r, group,
+      { rotX: (Math.random() - 0.5) * 1.4, rotZ: (Math.random() - 0.5) * 1.4 });
+  }
+  // pulsing heart / sac over the mound
+  const heart = sphere(0.45, 10, 8, 0xe04a26, 0, 1.0, -2.5, group, { material: basic(0xe04a26), sx: 1.1, sy: 1.3, sz: 1.1 });
+  const heartLight = pointLight(0xff5a2a, 8.0, 13, 0, 1.8, -2.5, group, { decay: 1.3 });
+  addGlow(group, 0xff5a2a, 0, 1.5, -2.5, 2.0, 0.3);
+  addLightShaft(group, 0xff5a2a, 0, 3.2, -2.5, 2.0, 1.15, 0.028);
+  // hanging pods
+  for (let i = 0; i < 8; i++) {
+    const x = -8 + Math.random() * 16;
+    const z = -6.5 + Math.random() * 11;
+    const y = 3.0 + Math.random() * 0.7;
+    sphere(0.28, 8, 6, 0x5a4a38, x, y, z, group, { sy: 1.6 });
+    cyl(0.012, 0.012, 0.55, 4, 0x2a1f18, x, y + 0.55, z, group);
+    if (i % 2 === 0) {
+      addGlow(group, 0x8a2a1a, x, y - 0.1, z, 0.5, 0.18);
+    }
+  }
   // rows of tall figures facing the entrance
   const tenants = [];
   for (let row = 0; row < 3; row++) {
@@ -793,6 +1178,11 @@ export function buildNest() {
       t.position.set(-8.4 + i * 2.4, 0, -1.5 - row * 2.4);
       t.rotation.y = 0;
       t.visible = true;
+      if ((row * 8 + i) % 5 === 0) {
+        for (const side of [-1, 1]) {
+          sphere(0.016, 5, 4, 0xd06a3a, side * 0.05, 2.06, 0.18, t, { material: basic(0xd06a3a) });
+        }
+      }
       group.add(t);
       tenants.push(t);
     }
@@ -805,25 +1195,29 @@ export function buildNest() {
   addGlow(group, 0xffb070, 0, 2.4, 4.5, 1.2, 0.22);
   addGlow(group, 0x7fa36a, 0, 2.5, -7.0, 1.2, 0.22);
   for (const [x, z, color] of [[-7, 2, 0x8a3a25], [7, 2, 0x8a3a25], [0, -7, 0x7fa36a], [0, 5, 0x7fa36a]]) {
+    cyl(0.02, 0.02, 0.9, 5, 0x1a211d, x, 3.65, z, group);
+    box(0.34, 0.08, 0.34, 0x1a211d, x, 3.15, z, group);
+    box(0.26, 0.04, 0.26, color, x, 3.1, z, group, { material: basic(color) });
     pointLight(color, 3.4, 9, x, 3.0, z, group, { decay: 1.3 });
-    box(0.2, 0.06, 0.4, color, x, 3.2, z, group, { material: basic(color) });
-    addGlow(group, color, x, 3.2, z, 0.9, 0.24);
+    addGlow(group, color, x, 3.1, z, 0.9, 0.24);
+    addLightShaft(group, color, x, 3.1, z, 3.05, 0.7, 0.026);
   }
+  addMotes(group, 20, 3.8, 0x9a8a70, 140);
   box(0.2, 3.0, 3.0, 0x111010, 0, 1.5, 8.4, group);
   const exitLight = pointLight(0x9bc17a, 0.9, 4, 0, 1.6, 7.8, group, { decay: 1.6 });
 
   return {
     group,
     colliders,
-    refs: { tenants },
+    refs: { tenants, heart, heartLight, pods },
     spawn: vec(0, 0, 7.4),
     bounds: { minX: -10.2, maxX: 10.2, minZ: -8.2, maxZ: 8.2 },
     enemies: [],
     interactables: [],
     triggers: [{ kind: "nest", pos: vec(0, 0, 3.6), radius: 2.4, once: true }],
-    fog: { color: 0x060403, density: 0.035 },
-    ambient: { color: 0x8a7058, intensity: 0.72 },
-    background: 0x020202,
+    fog: { color: 0x0b0604, density: 0.03 },
+    ambient: { color: 0x8a6a50, intensity: 0.9 },
+    background: 0x0a0503,
     name: "nest",
   };
 }
@@ -1354,6 +1748,7 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
       box(0.5, 0.04, 0.22, 0x0b0f0d, c.x, height - 0.47, c.z, group);
       box(0.4, 0.05, 0.11, fixtureColor, c.x, height - 0.49, c.z, group, { material: basic(fixtureColor) });
       addGlow(group, fixtureColor, c.x, height - 0.49, c.z, 1.05, 0.34);
+      addLightShaft(group, fixtureColor, c.x, height - 0.5, c.z, height - 0.55, cell * 0.36, 0.04);
       if ((i + j) % 4 === 0) {
         const light = pointLight(fixtureColor, 3.2, 8.2, c.x, height - 0.68, c.z, group, { decay: 1.45 });
         if (Math.random() < 0.32) {

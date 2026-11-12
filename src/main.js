@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { AudioEngine } from "./audio.js?v=10";
-import { UI } from "./ui.js?v=10";
+import { AudioEngine } from "./audio.js?v=11";
+import { UI } from "./ui.js?v=11";
 import {
   buildDiningRoom,
   buildCrawlspace,
@@ -11,7 +11,7 @@ import {
   makeRifle,
   makeCrawler,
   toonMat,
-} from "./world.js?v=10";
+} from "./world.js?v=11";
 import {
   buildDeadRail,
   buildZarya,
@@ -27,7 +27,7 @@ import {
   buildWarrenMaze,
   buildFloodedMaze,
   buildLairMaze,
-} from "./levels.js?v=10";
+} from "./levels.js?v=11";
 
 const canvas = document.getElementById("c");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
@@ -604,10 +604,10 @@ function startKryl() {
   prologue = null;
   kryl = null;
   const res = loadWorld(buildKryl());
-  scene.background.setHex(0x050605);
-  setFog(0x0a0d0b, 0.03);
-  ambient.color.setHex(0xa07850);
-  ambient.intensity = 1.15;
+  scene.background.setHex(0x0a1412);
+  setFog(0x0b1410, 0.02);
+  ambient.color.setHex(0xc09060);
+  ambient.intensity = 1.4;
   player.pos.set(0, 0, 4.8);
   player.yaw = 0;
   player.pitch = 0;
@@ -877,6 +877,13 @@ function updateExplore(dt) {
     }
   }
   if (level.data.refs?.motes) level.data.refs.motes.rotation.y += dt * 0.01;
+  const heartLight = level.data.refs?.heartLight;
+  if (heartLight) {
+    const now = performance.now() * 0.001;
+    const pulse = 1 + Math.sin(now * 2.2) * 0.08;
+    heartLight.intensity = 6.5 + Math.sin(now * 2.2) * 2.2;
+    if (level.data.refs.heart) level.data.refs.heart.scale.set(1.1 * pulse, 1.3 * pulse, 1.1 * pulse);
+  }
 
   level.ambientTimer -= dt;
   if (level.ambientTimer <= 0) {

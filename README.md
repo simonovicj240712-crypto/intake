@@ -41,6 +41,7 @@ The current pass also includes:
 - **Light glow halos** around lamps, signs, warning lights, and the moon.
 - **3D memory dioramas** instead of text-only flashbacks. Press **E** or click to let go of a memory.
 - **Branching vent mazes** with dead ends, loops, hanging signs, wall fans, ducts, hazard bands, pipes, grates, crates, and flickering lamps.
+- **Scene overhaul** — Kryl is a lived-in station market with a city window and station sign; the Dead Rail has a gantry, containers, signal masts and sleepers; the Fan chamber has a huge fan housing, catwalk, console and floodlights; the safe room has a bunk, desk, shelves and stove; the Last Crawl has low bulkheads, support frames and wall lights; the Nest has an organic mound, pulsing heart and hanging pods; the prologue dining room has a sideboard, rug, curtains, clock and pictures.
 - **A title-screen diorama** behind the main menu, with a bold comic title treatment.
 - **A minimal HUD** for health, medkits, MGR, logs, current weapon, and ammo.
 - **Aim-down-sights**, hit markers, enemy line-of-sight, spawn grace, knockback, and melee damage.
@@ -85,7 +86,7 @@ These are development shortcuts and do not affect normal play:
 
 - This is a condensed prototype, not the full 3–3.5 hour design.
 - Pointer lock must be granted by the browser. If the mouse does not capture, click the screen once.
-- If **ENTER THE VENTS** appears to do nothing, wait up to five seconds: the title now prints a boot error if the engine module did not load. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=10` clears old cached builds.
+- If **ENTER THE VENTS** appears to do nothing, wait up to five seconds: the title now prints a boot error if the engine module did not load. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=11` clears old cached builds.
 - Some set dressing and creature animation still reads as placeholder; the maze layout is procedurally generated on every load.
 - Automated tests cover transitions, interactions, combat, shop, death/retry, and the ending, but not real user pointer-lock input.
 

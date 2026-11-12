@@ -297,6 +297,96 @@ export function addGlow(parent, color, x, y, z, scale = 1, opacity = 0.35) {
   return sprite;
 }
 
+export function addLightShaft(parent, color, x, y, z, height = 3, radius = 1.2, opacity = 0.05) {
+  const geo = new THREE.CylinderGeometry(0.06, radius, height, 12, 1, true);
+  const mat = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    fog: false,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y - height / 2, z);
+  parent.add(mesh);
+  return mesh;
+}
+
+const _stationSigns = new Map();
+function stationSign(text, fg = "#ffe08a", bg = "#141a17") {  const key = `${text}|${fg}|${bg}`;
+  if (_stationSigns.has(key)) return _stationSigns.get(key);
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 160;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, 512, 160);
+  ctx.strokeStyle = "#39443d";
+  ctx.lineWidth = 8;
+  ctx.strokeRect(4, 4, 504, 152);
+  ctx.fillStyle = fg;
+  ctx.font = "bold 62px Arial Narrow, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 256, 82);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  const m = new THREE.MeshBasicMaterial({ map: tex });
+  _stationSigns.set(key, m);
+  return m;
+}
+
+let _cityWindowMat = null;
+function cityWindowMaterial() {
+  if (_cityWindowMat) return _cityWindowMat;
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 320;
+  const ctx = canvas.getContext("2d");
+  const sky = ctx.createLinearGradient(0, 0, 0, 320);
+  sky.addColorStop(0, "#07101e");
+  sky.addColorStop(0.55, "#123044");
+  sky.addColorStop(1, "#1b4a55");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, 512, 320);
+  ctx.fillStyle = "rgba(210,235,225,0.8)";
+  ctx.beginPath();
+  ctx.arc(390, 74, 30, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(6, 12, 16, 0.95)";
+  for (let i = 0; i < 18; i++) {
+    const w = 18 + Math.random() * 34;
+    const h = 45 + Math.random() * 160;
+    const x = i * 30 - 10;
+    ctx.fillRect(x, 320 - h, w, h);
+    for (let k = 0; k < 4; k++) {
+      if (Math.random() < 0.4) {
+        ctx.fillStyle = Math.random() < 0.5 ? "rgba(255,190,90,0.7)" : "rgba(110,210,190,0.6)";
+        ctx.fillRect(x + 5 + Math.random() * (w - 10), 320 - h + 8 + Math.random() * (h - 20), 3, 5);
+        ctx.fillStyle = "rgba(6, 12, 16, 0.95)";
+      }
+    }
+  }
+  for (let i = 0; i < 80; i++) {
+    ctx.strokeStyle = `rgba(150, 200, 210, ${0.04 + Math.random() * 0.1})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const x = Math.random() * 512;
+    const y = Math.random() * 320;
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 6, y + 18);
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  _cityWindowMat = new THREE.MeshBasicMaterial({ map: tex });
+  return _cityWindowMat;
+}
+
 export function box(w, h, d, color, x, y, z, parent, opts = {}) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), opts.material || mat(color, opts.mat || {}));
   m.position.set(x, y, z);
@@ -703,6 +793,66 @@ export function buildDiningRoom({ flashback = false } = {}) {
   box(0.07, 0.14, 0.07, 0xff6a3a, -3.82, 2.15, -2.55, group, { material: basic(0xff6a3a) });
   pointLight(0x7a3a28, 2.2, 4.2, -3.55, 1.7, -2.55, group, { decay: 1.4 });
 
+  // rug under the table
+  plane(3.8, 2.7, 0xffffff, 0, 0.012, 0, group, { rotX: -Math.PI / 2, material: toonMat(0x5a241e) });
+  plane(3.1, 2.1, 0xffffff, 0, 0.015, 0, group, { rotX: -Math.PI / 2, material: toonMat(0x7a4a2a) });
+
+  // sideboard and shelf against the left wall
+  box(0.55, 0.9, 2.0, 0x4a3322, -3.6, 0.45, 1.0, group);
+  box(0.65, 0.08, 2.1, 0x6b4a2e, -3.58, 0.94, 1.0, group);
+  for (const z of [0.2, 1.0, 1.8]) {
+    box(0.55, 0.02, 0.02, 0x2a1c12, -3.32, 0.6, z, group);
+    box(0.03, 0.06, 0.08, 0xc8a24a, -3.3, 0.75, z, group);
+  }
+  for (let i = 0; i < 4; i++) {
+    cyl(0.07, 0.07, 0.06, 8, 0xb7ad93, -3.58, 1.02, 0.2 + i * 0.5, group);
+    cyl(0.045, 0.045, 0.16, 8, 0x9e9075, -3.58, 1.09, 0.2 + i * 0.5, group);
+  }
+  box(0.5, 0.35, 0.4, 0x2a302c, -3.55, 1.18, 1.6, group);
+  box(0.2, 0.1, 0.03, 0x8fbf7a, -3.55, 1.22, 1.82, group, { material: basic(0x8fbf7a) });
+
+  // wainscot, wall ribs and ceiling beams
+  for (const side of [-1, 1]) {
+    box(0.06, 0.12, 7, 0x3a4a3e, side * 3.94, 1.0, 0, group);
+    for (const z of [-2.6, -0.4, 1.8]) {
+      box(0.07, 3.0, 0.1, 0x1d2b27, side * 3.92, 1.55, z, group);
+    }
+  }
+  for (const x of [-2.6, 0, 2.6]) {
+    box(0.12, 0.12, 7, 0x19201e, x, 3.0, 0, group);
+  }
+
+  // window curtains
+  for (const x of [1.02, 2.98]) {
+    plane(0.38, 1.55, 0xffffff, x, 1.72, -3.28, group, { material: toonMat(0x7a3226, { side: THREE.DoubleSide }) });
+    box(0.07, 0.06, 0.07, 0xc8a24a, x - 0.18, 2.52, -3.28, group);
+  }
+
+  // framed pictures and a clock
+  for (const [x, y, z, ry, color] of [[-3.9, 2.15, 0.2, Math.PI / 2, 0x3a4a3e], [-3.9, 1.8, -1.2, Math.PI / 2, 0x7a3a2a], [3.9, 2.1, -0.8, -Math.PI / 2, 0x2e5e56]]) {
+    box(0.04, 0.5, 0.4, 0x2a1a12, x, y, z, group, { rotY: ry });
+    plane(0.32, 0.42, 0xffffff, x + (ry > 0 ? 0.03 : -0.03), y, z, group, { rotY: ry, material: toonMat(color) });
+  }
+  cyl(0.2, 0.2, 0.04, 12, 0x2a1a12, -2.4, 2.3, -3.37, group, { rotX: Math.PI / 2 });
+  cyl(0.16, 0.16, 0.05, 12, 0xc9c1aa, -2.4, 2.3, -3.34, group, { rotX: Math.PI / 2 });
+  box(0.02, 0.11, 0.02, 0x1a1a14, -2.4, 2.35, -3.31, group);
+  box(0.08, 0.02, 0.02, 0x1a1a14, -2.36, 2.3, -3.31, group);
+
+  // coat rack and child's blocks
+  cyl(0.04, 0.04, 1.7, 6, 0x3a2618, 3.55, 0.85, 2.9, group);
+  for (const [dx, dz] of [[-0.18, 0], [0.18, 0], [0, -0.18]]) {
+    cyl(0.02, 0.02, 0.25, 5, 0x3a2618, 3.55 + dx, 1.35, 2.9 + dz, group, { rotZ: dx ? 0.8 : 0, rotX: dz ? 0.8 : 0 });
+  }
+  box(0.35, 0.65, 0.18, 0x3a5a4a, 3.55, 1.0, 2.72, group);
+  for (let i = 0; i < 4; i++) {
+    box(0.14, 0.12, 0.14, [0xc9a04a, 0x7a3a2a, 0x2e5e56, 0xb7ad93][i], 1.75 + (i % 2) * 0.18, 0.06, 1.55 + Math.floor(i / 2) * 0.18, group, { rotY: i * 0.4 });
+  }
+
+  // bread basket
+  cyl(0.2, 0.22, 0.1, 10, 0x6b4a2e, -0.7, 0.84, 0.3, group);
+  sphere(0.09, 6, 5, 0x9a6a35, -0.7, 0.9, 0.3, group, { sy: 0.6 });
+  addLightShaft(group, flashback ? 0xff7958 : 0xffc078, 0, 2.3, 0, 2.3, 1.0, 0.035);
+
   // family
   const mom = makeHumanoid({ coat: 0x7a3d28, pants: 0x26221c, hair: 0x2b1a12 });
   mom.position.set(-1.15, 0, -1.18);
@@ -891,6 +1041,92 @@ export function buildKryl() {
     const x = (Math.random() - 0.5) * 8;
     const z = (Math.random() - 0.5) * 8;
     box(0.25 + Math.random() * 0.4, 0.2 + Math.random() * 0.3, 0.25 + Math.random() * 0.4, 0x3a2c20, x, 0.1, z, group, { rotY: Math.random() * Math.PI });
+  }
+
+  // station identity
+  plane(5.2, 1.0, 0xffffff, 0, 3.3, -6.86, group, { material: stationSign("KRYL STATION", "#ffe08a") });
+  addGlow(group, 0xffd27a, 0, 3.3, -6.6, 1.8, 0.18);
+
+  // city window on the right wall
+  plane(3.0, 1.8, 0xffffff, 5.87, 2.35, 0, group, { rotY: -Math.PI / 2, material: cityWindowMaterial() });
+  box(0.1, 0.12, 3.2, 0x0e1512, 5.86, 1.35, 0, group);
+  box(0.1, 0.12, 3.2, 0x0e1512, 5.86, 3.35, 0, group);
+  box(0.1, 2.0, 0.12, 0x0e1512, 5.86, 2.35, -1.6, group);
+  box(0.1, 2.0, 0.12, 0x0e1512, 5.86, 2.35, 1.6, group);
+  pointLight(0x7fb8c8, 2.6, 9, 4.8, 2.5, 0, group, { decay: 1.4 });
+  addGlow(group, 0x7fb8c8, 5.7, 2.35, 0, 1.7, 0.18);
+
+  // wall wainscot, hazard band, ribs
+  for (const side of [-1, 1]) {
+    box(0.08, 1.1, 14, 0x2f3a34, side * 5.92, 0.55, 0, group);
+    box(0.08, 0.1, 14, 0xc08a3a, side * 5.92, 1.2, 0, group);
+    for (const z of [-6, -3.5, -1, 1.5, 4, 6]) {
+      box(0.1, 3.9, 0.14, 0x24312c, side * 5.9, 2, z, group);
+    }
+  }
+  for (const side of [-1, 1]) {
+    box(12, 1.1, 0.08, 0x2f3a34, 0, 0.55, side * 6.92, group);
+    box(12, 0.1, 0.08, 0xc08a3a, 0, 1.2, side * 6.92, group);
+  }
+  for (const x of [-4.5, -2.0, 0.5, 3.0, 5.0]) {
+    box(0.12, 0.12, 14, 0x1c2420, x, 3.85, 0, group);
+  }
+
+  // rug under the counter
+  plane(4.6, 3.0, 0xffffff, 0, 0.015, 0.3, group, { rotX: -Math.PI / 2, material: toonMat(0x7a2f27) });
+  plane(3.9, 2.4, 0xffffff, 0, 0.018, 0.3, group, { rotX: -Math.PI / 2, material: toonMat(0x2f6b63) });
+
+  // crates and barrels around the market
+  const crateSpots = [[-5.0, 4.7, 0.8], [5.05, 4.2, 0.68], [4.95, -2.4, 0.65], [-5.0, -3.3, 0.75]];
+  for (const [x, z, s] of crateSpots) {
+    box(s, s, s, 0x6a4a2c, x, s / 2, z, group);
+    box(s * 0.9, 0.08, s * 0.9, 0x3a2a1a, x, s * 0.8, z, group);
+    colliders.push({ minX: x - s / 2, maxX: x + s / 2, minZ: z - s / 2, maxZ: z + s / 2 });
+  }
+  for (const [x, z] of [[-5.1, 2.6], [5.1, 2.2]]) {
+    cyl(0.3, 0.3, 0.85, 8, 0x8a5a2a, x, 0.43, z, group);
+    cyl(0.31, 0.31, 0.06, 8, 0x3a2a1a, x, 0.16, z, group);
+    cyl(0.31, 0.31, 0.06, 8, 0x3a2a1a, x, 0.7, z, group);
+    colliders.push({ minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 });
+  }
+
+  // stove and steam
+  cyl(0.32, 0.38, 0.8, 8, 0x3a2a1e, -4.7, 0.4, 0.9, group);
+  cyl(0.34, 0.34, 0.06, 8, 0x7e3a1c, -4.7, 0.82, 0.9, group, { material: basic(0xff7a2a) });
+  pointLight(0xff7a2a, 4.0, 8, -4.7, 1.0, 0.9, group, { decay: 1.3 });
+  addGlow(group, 0xff7a2a, -4.7, 0.95, 0.9, 1.2, 0.26);
+  addLightShaft(group, 0xb8c8b8, -4.7, 1.2, 0.9, 1.3, 0.3, 0.035);
+
+  // shelves behind the counter
+  for (const y of [1.45, 2.05]) {
+    box(2.8, 0.07, 0.35, 0x3a2c20, 0, y, 0.45, group);
+    for (let i = 0; i < 6; i++) {
+      cyl(0.06, 0.06, 0.16, 6, i % 2 ? 0x6b7a55 : 0x8a6a3a, -1.1 + i * 0.44, y + 0.1, 0.45, group);
+    }
+  }
+
+  // string lights and hanging cloth
+  for (const [x, z, color] of [[-3.4, -2.2, 0xffb765], [-1.2, -2.2, 0x8fe0c0], [1.2, -2.2, 0xff8a6a], [3.4, -2.2, 0xffd27a], [-2.4, 3.6, 0xffb765], [2.4, 3.6, 0x8fe0c0]]) {
+    sphere(0.055, 6, 5, color, x, 3.35, z, group, { material: basic(color) });
+    addGlow(group, color, x, 3.35, z, 0.45, 0.24);
+  }
+  const clothColors = [0x9a3a24, 0x2f6f66, 0xb8862a];
+  for (const [side, z, color] of [[-1, 2.2, 0x9a3a24], [1, -0.8, 0x2f6f66], [-1, -4.6, 0xb8862a]]) {
+    plane(2.2, 1.6, 0xffffff, side * 5.83, 2.5, z, group, {
+      rotY: side < 0 ? Math.PI / 2 : -Math.PI / 2,
+      material: toonMat(color, { transparent: true, opacity: 0.9, side: THREE.DoubleSide }),
+    });
+  }
+
+  // a waiting figure by the memorial
+  const local = makeHumanoid({ coat: 0x39423a, pants: 0x1a201c, hair: 0x1e1711 });
+  local.position.set(-3.6, 0, -4.8);
+  local.rotation.y = 2.6;
+  group.add(local);
+
+  // light shafts under the bulbs
+  for (const x of [-3.5, -1.2, 1.1, 3.4]) {
+    addLightShaft(group, 0xffb765, x, 3.0, -0.7, 2.8, 0.65, 0.035);
   }
 
   addDust(group, 50, 9, 0xa08d6b);
