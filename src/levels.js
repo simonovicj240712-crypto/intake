@@ -16,7 +16,7 @@ import {
   makeTenant,
   makeCrawler,
   makeScavenger,
-} from "./world.js?v=11";
+} from "./world.js?v=14";
 
 function vec(x, y, z) {
   return new THREE.Vector3(x, y, z);
@@ -140,16 +140,21 @@ function door(group, x, z, label = "VENT", rotY = 0) {
   // warning strips on frame
   plane(0.34, 0.52, 0xffffff, -1.13, 0.33, 0.21, g, { material: hazardMaterial() });
   plane(0.34, 0.52, 0xffffff, 1.13, 0.33, 0.21, g, { material: hazardMaterial() });
-  // stencilled label
+  // stencilled icon label
   plane(0.92, 0.46, 0xffffff, 0, 2.36, 0.22, g, { material: signMaterial(label, "#d8c9a3") });
-  // status lamp
-  box(0.1, 0.1, 0.06, 0xb33a24, 0, 2.06, 0.2, g, { material: basic(0xb33a24) });
+  // requirement pips: one green light per completed fuse/valve/power stage
+  const pips = [];
+  for (let i = 0; i < 3; i++) {
+    pips.push(box(0.1, 0.1, 0.05, 0x6a2018, -0.26 + i * 0.26, 1.84, 0.2, g, { material: basic(0x6a2018) }));
+  }
+  // central status lamp: red while sealed, green when ready
+  const statusLamp = box(0.14, 0.14, 0.06, 0xb33a24, 0, 2.06, 0.2, g, { material: basic(0xb33a24) });
   addGlow(g, 0xb33a24, 0, 2.06, 0.25, 0.38, 0.3);
   g.position.set(x, 0, z);
   g.rotation.y = rotY;
   group.add(g);
   pointLight(0x8fb06a, 1.6, 5.5, x, 1.9, z, group, { decay: 1.5 });
-  return { group: g, pos: new THREE.Vector3(x, 0, z), label };
+  return { group: g, pos: new THREE.Vector3(x, 0, z), label, pips, statusLamp };
 }
 
 function crawlerAt(group, x, z, rotY = 0) {
@@ -503,6 +508,16 @@ export function buildZarya() {
   box(0.05, 0.05, 0.02, 0x8caa76, 0.05, 1.44, 0.13, vera, { material: basic(0x8caa76) });
   pointLight(0xffc078, 3.2, 6, 0, 2.15, 3.0, group, { decay: 1.35 });
 
+  // floating coin beacon marks the trader without using words
+  const shopBeacon = new THREE.Group();
+  cyl(0.19, 0.19, 0.06, 14, 0xc9a04a, 0, 0, 0, shopBeacon, { rotX: Math.PI / 2, material: basic(0xc9a04a) });
+  const beaconRing = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.026, 5, 16), toonMat(0x8d7135));
+  shopBeacon.add(beaconRing);
+  shopBeacon.position.set(1.72, 1.72, 2.55);
+  shopBeacon.userData.baseY = 1.72;
+  group.add(shopBeacon);
+  addGlow(group, 0xffd27a, 1.72, 1.72, 2.55, 0.85, 0.22);
+
   // exit vent
   const exit = door(group, 0, -5.7, "VENT");
   const noteObj = note(group, -4.8, 4.2, "LOG 08: Zarya sells everything. Even the air.");
@@ -511,7 +526,7 @@ export function buildZarya() {
   return {
     group,
     colliders,
-    refs: { vera, exit },
+    refs: { vera, exit, shopBeacon },
     spawn: vec(0, 0, 5.2),
     bounds: { minX: -6.6, maxX: 6.6, minZ: -5.8, maxZ: 6.2 },
     enemies: [],
@@ -802,7 +817,7 @@ export function buildFan() {
     bounds: { minX: -7.6, maxX: 7.6, minZ: -8.2, maxZ: 8.2 },
     enemies,
     interactables: [
-      { kind: "console", pos: consoleBox.position.clone().add(vec(0, 0, 0.7)), radius: 2.2, prompt: "E — START THE FAN" },
+      { kind: "console", pos: consoleBox.position.clone().add(vec(0, 0, 0.7)), radius: 2.2, prompt: "E — START THE FAN", group: consoleBox },
       { kind: "door", pos: exit.pos, radius: 2.2, prompt: "E — OPEN THE HATCH", next: "safe_room", requirement: "console" },
       { kind: "note", pos: noteObj.pos, radius: 1.5, text: noteObj.text, group: noteObj.group },
       { kind: "pickup", pos: med.pos, radius: 1.5, item: "medkit", group: med.group },
@@ -939,8 +954,8 @@ export function buildSafeRoom() {
     bounds: { minX: -3.6, maxX: 3.6, minZ: -3.6, maxZ: 3.4 },
     enemies: [],
     interactables: [
-      { kind: "radio", pos: radio.position.clone(), radius: 1.8, prompt: "E — USE THE RADIO" },
-      { kind: "exit", pos: exit.pos, radius: 2.0, prompt: "E — KEEP GOING", next: "lair" },
+      { kind: "radio", pos: radio.position.clone(), radius: 1.8, prompt: "E — USE THE RADIO", group: radio },
+      { kind: "exit", pos: exit.pos, radius: 2.0, prompt: "E — KEEP GOING", next: "lair", requirement: "radio", required: 1 },
       { kind: "pickup", pos: med.pos, radius: 1.5, item: "medkit", group: med.group },
       { kind: "note", pos: noteObj.pos, radius: 1.5, text: noteObj.text, group: noteObj.group },
     ],
@@ -1871,6 +1886,217 @@ function mixColor(a, b, t) {
   return (r << 16) | (g << 8) | bl;
 }
 
+function drawSignPips(ctx, count, x, y, gap = 10, radius = 3.4) {
+  for (let i = 0; i < count; i++) {
+    ctx.beginPath();
+    ctx.arc(x + (i - (count - 1) / 2) * gap, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawSignIcon(ctx, text, fg) {
+  const t = String(text || "").toUpperCase();
+  const cx = 128;
+  const cy = 62;
+  const stroke = (w = 4) => { ctx.lineWidth = w; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = fg; ctx.fillStyle = fg; };
+  const line = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+  const slash = () => { stroke(6); line(92, 36, 164, 92); };
+
+  let kind = "grille";
+  if (/NO CREDIT/.test(t)) kind = "coinbar";
+  else if (/NO DIVING/.test(t)) kind = "waterbar";
+  else if (/NO AIR/.test(t)) kind = "airbar";
+  else if (/NO ACCESS|KEEP OUT|TURN BACK/.test(t)) kind = "barred";
+  else if (/DANGER/.test(t)) kind = "hazard";
+  else if (/FAN/.test(t)) kind = "fan";
+  else if (/RAIL/.test(t)) kind = "rail";
+  else if (/AIR/.test(t)) kind = "air";
+  else if (/SEALED|LOCK/.test(t)) kind = "lock";
+  else if (/SANCTUARY|SAFE|SHELTER/.test(t)) kind = "shelter";
+  else if (/CRAWL/.test(t)) kind = "crawl";
+  else if (/NEST/.test(t)) kind = "nest";
+  else if (/SUMP|DROWN|WATER/.test(t)) kind = "water";
+  else if (/HATCH/.test(t)) kind = "hatch";
+  else if (/STATION|ZARYA|KRYL|CITY/.test(t)) kind = "city";
+  else if (/^[\d\s]+$/.test(t)) kind = "count";
+
+  if (kind === "hazard") {
+    stroke(5);
+    ctx.beginPath();
+    ctx.moveTo(cx, 20);
+    ctx.lineTo(198, 100);
+    ctx.lineTo(58, 100);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.lineWidth = 7;
+    line(cx, 43, cx, 73);
+    ctx.beginPath();
+    ctx.arc(cx, 88, 5, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (kind === "barred") {
+    stroke(6);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+    ctx.stroke();
+    slash();
+  } else if (kind === "fan") {
+    stroke(5);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate((Math.PI / 2) * i);
+      ctx.beginPath();
+      ctx.ellipse(15, 0, 15, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#141a17";
+    ctx.fill();
+  } else if (kind === "rail") {
+    stroke(5);
+    line(48, 48, 208, 48);
+    line(48, 76, 208, 76);
+    stroke(4);
+    for (let x = 58; x <= 198; x += 28) line(x, 38, x, 86);
+    stroke(3);
+    line(80, 104, 176, 104);
+  } else if (kind === "city") {
+    stroke(4);
+    const base = 98;
+    const blocks = [[44, 48, 26], [74, 34, 30], [108, 58, 22], [134, 28, 30], [168, 42, 32], [204, 54, 18]];
+    for (const [x, h, w] of blocks) {
+      ctx.strokeRect(x, base - h, w, h);
+      for (let wy = base - h + 8; wy < base - 8; wy += 12) {
+        for (let wx = x + 6; wx < x + w - 4; wx += 10) {
+          if ((wx + wy) % 3 === 0) ctx.fillRect(wx, wy, 4, 5);
+        }
+      }
+    }
+    stroke(3);
+    ctx.beginPath();
+    ctx.arc(74, 22, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    line(28, 108, 228, 108);
+  } else if (kind === "air" || kind === "airbar") {
+    stroke(5);
+    for (let y = 44; y <= 82; y += 19) {
+      ctx.beginPath();
+      ctx.moveTo(58, y);
+      ctx.bezierCurveTo(88, y - 12, 108, y + 12, 139, y);
+      ctx.bezierCurveTo(166, y - 12, 184, y + 12, 206, y);
+      ctx.stroke();
+    }
+    if (kind === "airbar") slash();
+  } else if (kind === "coinbar") {
+    stroke(5);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+    ctx.stroke();
+    slash();
+  } else if (kind === "lock") {
+    stroke(5);
+    ctx.strokeRect(88, 58, 80, 44);
+    ctx.beginPath();
+    ctx.arc(cx, 58, 24, Math.PI, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, 78, 7, 0, Math.PI * 2);
+    ctx.fill();
+    line(cx, 84, cx, 94);
+  } else if (kind === "shelter") {
+    stroke(5);
+    ctx.beginPath();
+    ctx.moveTo(62, 62);
+    ctx.lineTo(cx, 24);
+    ctx.lineTo(194, 62);
+    ctx.stroke();
+    ctx.strokeRect(74, 62, 108, 42);
+    ctx.strokeRect(116, 76, 24, 28);
+    ctx.strokeRect(88, 72, 14, 14);
+    ctx.strokeRect(154, 72, 14, 14);
+  } else if (kind === "crawl") {
+    stroke(6);
+    line(50, 34, 206, 34);
+    line(50, 104, 206, 104);
+    stroke(5);
+    for (const x of [94, 162]) {
+      line(x, 48, x, 78);
+      line(x - 10, 68, x, 78);
+      line(x + 10, 68, x, 78);
+    }
+    stroke(4);
+    line(54, 50, 54, 90);
+    line(202, 50, 202, 90);
+  } else if (kind === "nest") {
+    stroke(5);
+    ctx.beginPath();
+    ctx.ellipse(cx, 82, 58, 24, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cx, 82, 36, 13, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    stroke(3);
+    for (const [x, y] of [[96, 60], [128, 52], [160, 60]]) {
+      ctx.beginPath();
+      ctx.ellipse(x, y, 9, 13, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } else if (kind === "water" || kind === "waterbar") {
+    stroke(5);
+    for (let y = 42; y <= 80; y += 19) {
+      ctx.beginPath();
+      ctx.moveTo(54, y);
+      ctx.quadraticCurveTo(79, y - 14, 104, y);
+      ctx.quadraticCurveTo(129, y + 14, 154, y);
+      ctx.quadraticCurveTo(179, y - 14, 204, y);
+      ctx.stroke();
+    }
+    if (kind === "waterbar") slash();
+  } else if (kind === "hatch") {
+    stroke(5);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 32, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+    ctx.stroke();
+    line(cx - 20, cy, cx + 20, cy);
+    line(cx, cy - 20, cx, cy + 20);
+    for (let i = 0; i < 4; i++) {
+      const a = Math.PI / 4 + (Math.PI / 2) * i;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * 32, cy + Math.sin(a) * 32, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (kind === "count") {
+    const n = Math.max(0, Math.min(9, parseInt(t, 10) || 0));
+    stroke(5);
+    ctx.strokeRect(38, 26, 180, 76);
+    drawSignPips(ctx, n, cx, cy, 17, 6);
+  } else {
+    // vent / gate / generic bulkhead grille
+    stroke(5);
+    ctx.strokeRect(72, 34, 112, 62);
+    stroke(4);
+    for (let x = 88; x <= 168; x += 16) line(x, 42, x, 88);
+    stroke(4);
+    line(196, 58, 214, 66);
+    line(196, 74, 214, 66);
+  }
+
+  const num = parseInt((t.match(/(\d+)\s*$/) || [])[1] || "", 10);
+  ctx.fillStyle = fg;
+  if (num > 0 && kind !== "count") drawSignPips(ctx, Math.min(9, num), 128, 112, 9, 3);
+}
+
 const _signCache = new Map();
 function signMaterial(text, fg = "#d9cba8") {
   if (_signCache.has(text + fg)) return _signCache.get(text + fg);
@@ -1883,11 +2109,7 @@ function signMaterial(text, fg = "#d9cba8") {
   ctx.strokeStyle = "#46524b";
   ctx.lineWidth = 6;
   ctx.strokeRect(3, 3, 250, 122);
-  ctx.fillStyle = fg;
-  ctx.font = "bold 40px Arial Narrow, Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, 128, 64);
+  drawSignIcon(ctx, text, fg);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.minFilter = THREE.LinearFilter;

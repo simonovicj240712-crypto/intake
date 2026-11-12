@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { AudioEngine } from "./audio.js?v=11";
-import { UI } from "./ui.js?v=11";
+import { AudioEngine } from "./audio.js?v=14";
+import { UI } from "./ui.js?v=14";
 import {
   buildDiningRoom,
   buildCrawlspace,
@@ -11,7 +11,9 @@ import {
   makeRifle,
   makeCrawler,
   toonMat,
-} from "./world.js?v=11";
+  addGlow,
+  glowTexture,
+} from "./world.js?v=14";
 import {
   buildDeadRail,
   buildZarya,
@@ -27,7 +29,7 @@ import {
   buildWarrenMaze,
   buildFloodedMaze,
   buildLairMaze,
-} from "./levels.js?v=11";
+} from "./levels.js?v=14";
 
 const canvas = document.getElementById("c");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
@@ -119,6 +121,7 @@ let weaponKick = 0;
 let gunshotWarned = false;
 let shake = { time: 0, intensity: 0 };
 let debugMode = false;
+const collectBursts = [];
 
 const WEAPONS = {
   pistol: { name: "PM pistol", cap: 8, damage: 26, spread: 0.006, pellets: 1, cooldown: 0.22 },
@@ -265,7 +268,42 @@ function loadWorld(result) {
   return result;
 }
 
+function spawnCollectBurst(pos, color = 0xffd27a, scale = 0.55) {
+  if (!worldGroup) return;
+  const material = new THREE.SpriteMaterial({
+    map: glowTexture(),
+    color,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const sprite = new THREE.Sprite(material);
+  sprite.position.set(pos.x, 0.9, pos.z);
+  sprite.scale.setScalar(scale);
+  worldGroup.add(sprite);
+  collectBursts.push({ sprite, t: 0, duration: 0.5, scale });
+}
+
+function updateCollectBursts(dt) {
+  for (let i = collectBursts.length - 1; i >= 0; i--) {
+    const b = collectBursts[i];
+    b.t += dt;
+    const k = Math.min(1, b.t / b.duration);
+    b.sprite.scale.setScalar(b.scale * (1 + k * 2.6));
+    b.sprite.material.opacity = 0.95 * (1 - k);
+    b.sprite.position.y = 0.9 + k * 0.5;
+    if (k >= 1) {
+      worldGroup?.remove(b.sprite);
+      b.sprite.material.dispose();
+      collectBursts.splice(i, 1);
+    }
+  }
+}
+
 function resetCommon() {
+  for (const b of collectBursts) b.sprite.material.dispose();
+  collectBursts.length = 0;
   dialogueOpen = false;
   jumpscare = null;
   vision = null;
@@ -368,7 +406,6 @@ function lockPointer() {
 }
 
 document.addEventListener("pointerlockerror", () => {
-  ui.subtitle("Click the screen to capture the mouse.", 3000);
   updateLookHint();
 });
 
@@ -416,7 +453,7 @@ function startPrologue() {
   };
 
   ui.chapter("PROLOGUE", "THE LAST DINNER", "Kryl Station — years before", 2600);
-  ui.subtitle("Mom: Eat while it's warm.", 2400);
+  ui.speak("MOM", "Eat while it's warm.", 2400);
   ui.clearFade();
   return res;
 }
@@ -463,7 +500,7 @@ function startCrawlspace() {
   if (res.refs.tokar) res.refs.tokar.visible = false;
   audio.setAmbient(0.025);
   audio.heartbeat(0.09);
-  ui.subtitle("Dad: Don't make a sound.", 2600);
+  ui.speak("DAD", "Don't make a sound.", 2600);
   prologue = {
     step: "crawl",
     t: 0,
@@ -507,7 +544,7 @@ function updatePrologue(dt) {
       audio.whisper();
     }
     if (p.t > 2.4) {
-      ui.subtitle("Dad: Go with your mother. Now.", 2500);
+      ui.speak("DAD", "Go with your mother. Now.", 2500);
     }
 
     const tenantPos = new THREE.Vector3(-3.35, 1.8, -3.0);
@@ -633,10 +670,17 @@ function startKryl() {
   kryl = { talked: false, pages: [], page: 0, nearTokar: false, nearVent: false };
   ui.chapter("KRYL STATION", "YEARS LATER", "The last safe place you know", 3000);
   setTimeout(() => {
-    if (state === "kryl") ui.subtitle("Tokar: Over here, kid.", 2600);
+    if (state === "kryl" && !dialogueOpen && !kryl?.talked) ui.speak("TOKAR", "Over here, kid.", 2600);
   }, 2900);
   ui.clearFade();
   setTimeout(updateLookHint, 300);
+}
+
+function enterVentFromKryl() {
+  if (!kryl || kryl.leaving) return;
+  kryl.leaving = true;
+  player.frozen = true;
+  ui.fadeOut(1000).then(() => startVent());
 }
 
 function startVent(retry = false) {
@@ -686,9 +730,6 @@ function startVent(retry = false) {
     endTransition: false,
   };
   ui.chapter(retry ? "CHECKPOINT" : "ACT I", retry ? "THE VENT" : "THE DESCENT", retry ? "Again." : "Don't fire unless you have to.", 2200);
-  setTimeout(() => {
-    if (state === "vent") ui.subtitle("WASD move · F flashlight · Ctrl crouch · E search · LMB fire", 5000);
-  }, 2200);
   ui.clearFade();
   setTimeout(updateLookHint, 300);
 }
@@ -773,22 +814,21 @@ function updateKryl(dt) {
   if (!world || !kryl) return;
   player.forcedCrawl = false;
   updatePlayer(dt);
-  if (dialogueOpen) {
-    ui.prompt(null);
-    return;
-  }
+  if (dialogueOpen) return;
 
   const refs = world.refs;
   kryl.nearTokar = distXZ(player.pos, refs.tokar.position) < 2.75;
   kryl.nearVent = distXZ(player.pos, new THREE.Vector3(0, 0, -6.2)) < 2.35;
 
-  if (kryl.nearTokar) {
-    ui.prompt(kryl.talked ? "<b>E</b> TALK TO TOKAR" : "<b>E</b> TALK TO TOKAR");
-  } else if (kryl.nearVent) {
-    ui.prompt(kryl.talked ? "<b>E</b> OPEN THE VENT" : "<b>E</b> TALK TO TOKAR FIRST");
-  } else {
-    ui.prompt(null);
+  if (kryl.nearTokar && !kryl.talked) {
+    startDialogue();
+    return;
   }
+  if (kryl.talked && kryl.nearVent) {
+    enterVentFromKryl();
+    return;
+  }
+  ui.prompt(null);
 }
 
 function updateVent(dt) {
@@ -796,7 +836,6 @@ function updateVent(dt) {
 
   if (vent.search) {
     vent.search.t += dt;
-    ui.prompt("<b>...</b> SEARCHING THE BODY");
     if (vent.search.t >= vent.search.duration) {
       vent.search = null;
       vent.looted = true;
@@ -807,8 +846,7 @@ function updateVent(dt) {
       player.mags.pistol = player.ammo;
       mgr += 6;
       audio.click();
-      ui.prompt(null);
-      ui.subtitle(`Pistol rounds +8 · MGR +6 · Filter +1  (${mgr} MGR)`, 3200);
+      spawnCollectBurst(world.refs.bodyPos, 0xffd27a, 0.7);
     }
     return;
   }
@@ -840,25 +878,14 @@ function updateVent(dt) {
   vent.nearBody = !vent.looted && distXZ(player.pos, refs.bodyPos) < 1.9;
   vent.nearExit = distXZ(player.pos, refs.exit) < 2.2;
 
-  if (vent.nearBody) {
-    ui.prompt("<b>E</b> SEARCH BODY");
-  } else if (vent.nearExit) {
-    ui.prompt(vent.crawlerKilled ? "<b>E</b> OPEN THE HATCH" : "<b>E</b> THE HATCH IS SEALED");
-  } else {
-    ui.prompt(null);
-  }
-
-  if (player.pos.z < -2.2 && player.pos.z > -5.4) {
-    if (!vent.crawlHinted) {
-      vent.crawlHinted = true;
-      ui.subtitle("Crawl. Keep your head down.", 2200);
-    }
-  }
+  if (vent.nearBody && !vent.search) beginSearch();
+  if (vent.crawlerKilled && vent.nearExit && !vent.endTransition) openEnd();
 }
 
 function updateExplore(dt) {
   if (!level || state !== "explore") return;
   if (shopOpen) return;
+  if (level.transitioning) return;
   player.forcedCrawl = levelId === "last_crawl";
   updatePlayer(dt);
   if (state !== "explore") return;
@@ -867,6 +894,11 @@ function updateExplore(dt) {
   updateAmbientCrawler(dt);
 
   if (level.data.refs?.fan && level.fanOn) level.data.refs.fan.rotation.z += dt * 10;
+  const beacon = level.data.refs?.shopBeacon;
+  if (beacon) {
+    beacon.rotation.y += dt * 1.7;
+    beacon.position.y = (beacon.userData.baseY ?? beacon.position.y) + Math.sin(performance.now() * 0.0022) * 0.07;
+  }
 
   const flicker = level.data.refs?.flickerLights;
   if (flicker) {
@@ -954,9 +986,10 @@ function updateExplore(dt) {
     }
   }
 
+  autoInteractLevel(dt);
+  updateDoorIndicators();
   level.near = findNearInteractable();
-  if (level.near) ui.prompt(promptFor(level.near));
-  else ui.prompt(null);
+  ui.prompt(null);
 }
 
 function startCeilingCrawler() {
@@ -1089,37 +1122,97 @@ function findNearInteractable() {
   return best;
 }
 
-function promptFor(item) {
-  if (item.kind === "door") {
-    if (item.requirement === "fuses") {
-      return level.fuses >= item.required
-        ? "<b>E</b> OPEN THE DOOR"
-        : `<b>E</b> FUSES ${level.fuses}/${item.required}`;
-    }
-    if (item.requirement === "valves") {
-      return level.valves >= item.required
-        ? "<b>E</b> OPEN THE HATCH"
-        : `<b>E</b> VALVES ${level.valves}/${item.required}`;
-    }
-    if (item.requirement === "console") {
-      return level.fanOn ? "<b>E</b> OPEN THE HATCH" : "<b>E</b> START THE FAN FIRST";
-    }
-  }
-  if (item.kind === "fuse") return "<b>E</b> TAKE FUSE";
-  if (item.kind === "valve") return "<b>E</b> TURN VALVE";
-  if (item.kind === "console") return "<b>E</b> START THE FAN";
-  if (item.kind === "body") return "<b>E</b> SEARCH BODY";
-  if (item.kind === "note") return "<b>E</b> READ NOTE";
-  if (item.kind === "pickup") return item.item === "medkit" ? "<b>E</b> TAKE MEDKIT" : "<b>E</b> TAKE ROUNDS";
-  if (item.kind === "shop") return "<b>E</b> TRADE WITH VERA";
-  if (item.kind === "radio") return "<b>E</b> USE THE RADIO";
-  return item.prompt || "<b>E</b> INTERACT";
+function requirementMet(item) {
+  if (!item.requirement) return true;
+  if (item.requirement === "fuses") return level.fuses >= (item.required ?? 3);
+  if (item.requirement === "valves") return level.valves >= (item.required ?? 3);
+  if (item.requirement === "console") return !!level.fanOn;
+  if (item.requirement === "radio") return !!level.radioUsed;
+  return false;
 }
 
-function interactLevel() {
-  if (!level || state !== "explore" || shopOpen) return;
-  const item = level.near || findNearInteractable();
-  if (!item) return;
+function updateDoorIndicators() {
+  const door = level?.door;
+  if (!door?.pips) return;
+  const item = level.doorItem;
+  let done = 0;
+  const total = 3;
+  if (item?.requirement === "fuses") done = Math.min(total, level.fuses);
+  else if (item?.requirement === "valves") done = Math.min(total, level.valves);
+  else if (item?.requirement === "console") done = level.fanOn ? total : 0;
+  else if (item?.requirement === "radio") done = level.radioUsed ? total : 0;
+  else done = total;
+  const ready = item ? requirementMet(item) : true;
+  for (let i = 0; i < door.pips.length; i++) {
+    const pip = door.pips[i];
+    if (!pip?.material?.color) continue;
+    pip.material.color.setHex(i < done ? 0x8fe08a : 0x6a2018);
+  }
+  if (door.statusLamp?.material?.color) {
+    door.statusLamp.material.color.setHex(ready ? 0x8fe08a : 0xb33a24);
+  }
+}
+
+function autoInteractLevel(dt) {
+  if (!level || level.transitioning || shopOpen || state !== "explore") return;
+  if (level.autoCooldown > 0) {
+    level.autoCooldown = Math.max(0, level.autoCooldown - dt);
+    return;
+  }
+
+  const priority = { fuse: 0, valve: 0, console: 0, pickup: 1, note: 1, body: 1, radio: 1 };
+  let target = null;
+  let targetPriority = 9;
+  let targetDist = Infinity;
+
+  for (const item of level.data.interactables) {
+    if (item.kind === "shop" || item.kind === "door" || item.kind === "exit") continue;
+    if (item.group && !item.group.visible) continue;
+    if (item.used || item.looted) continue;
+    const p = priority[item.kind] ?? 2;
+    const d = distXZ(player.pos, item.pos);
+    if (d > item.radius) continue;
+    if (p < targetPriority || (p === targetPriority && d < targetDist)) {
+      target = item;
+      targetPriority = p;
+      targetDist = d;
+    }
+  }
+
+  if (!target) {
+    for (const item of level.data.interactables) {
+      if (item.kind !== "door" && item.kind !== "exit") continue;
+      if (level.transitioning) return;
+      if (!requirementMet(item)) continue;
+      if (distXZ(player.pos, item.pos) <= item.radius) {
+        target = item;
+        break;
+      }
+    }
+  }
+
+  if (!target) return;
+  const kind = target.kind;
+  interactLevel(target);
+  level.autoCooldown = kind === "door" || kind === "exit" ? 0.85 : 0.32;
+  if (kind !== "door" && kind !== "exit") {
+    const color = kind === "fuse" || kind === "console" ? 0xffd27a
+      : kind === "valve" ? 0x8fe0c0
+      : kind === "body" ? 0xd06a3a
+      : kind === "radio" ? 0x9bc17a
+      : 0xb6d68f;
+    spawnCollectBurst(target.pos, color, 0.5);
+  }
+}
+
+function promptFor(item) {
+  return "";
+}
+
+function interactLevel(itemOverride = null) {
+  if (!level || state !== "explore" || shopOpen || level.transitioning) return;
+  const item = itemOverride || level.near || findNearInteractable();
+  if (!item || item.used || item.looted) return;
 
   if (item.kind === "body") {
     item.looted = true;
@@ -1204,10 +1297,11 @@ function interactLevel() {
 
   if (item.kind === "radio") {
     item.used = true;
+    level.radioUsed = true;
     player.health = 100;
     audio.beacon();
-    ui.subtitle("Mara: I can still hear you. Keep moving. Sanctuary is real.", 4200);
-    setTimeout(() => { if (state === "explore") ui.subtitle("Mara: Don't stop for the voices.", 3200); }, 4400);
+    ui.speak("MARA", "I can still hear you. Keep moving. Sanctuary is real.", 4200);
+    setTimeout(() => { if (state === "explore") ui.speak("MARA", "Don't stop for the voices.", 3200); }, 4400);
     return;
   }
 
@@ -1216,7 +1310,8 @@ function interactLevel() {
       !item.requirement ||
       (item.requirement === "fuses" && level.fuses >= item.required) ||
       (item.requirement === "valves" && level.valves >= item.required) ||
-      (item.requirement === "console" && level.fanOn);
+      (item.requirement === "console" && level.fanOn) ||
+      (item.requirement === "radio" && level.radioUsed);
     if (ok && item.next) {
       goNext(item.next);
     } else if (item.requirement === "fuses") {
@@ -1235,9 +1330,11 @@ function interactLevel() {
 }
 
 function goNext(next) {
-  if (!next) return;
+  if (!next || !level || level.transitioning) return;
+  level.transitioning = true;
   player.frozen = true;
   ui.prompt(null);
+  ui.crosshair(false);
   ui.fadeOut(900).then(() => startLevel(next));
 }
 
@@ -1295,10 +1392,30 @@ function startLevel(id, retry = false) {
     fuses: 0,
     valves: 0,
     fanOn: false,
+    radioUsed: false,
     near: null,
+    door: data.refs?.exit || data.refs?.gate || null,
+    doorItem: data.interactables.find((i) => i.kind === "door" || i.kind === "exit") || null,
+    transitioning: false,
+    autoCooldown: 0.7,
     ambientTimer: 24 + Math.random() * 26,
     spawnGrace: performance.now() + 1600,
   };
+
+  for (const item of data.interactables) {
+    if (!item.group) continue;
+    const color =
+      item.kind === "fuse" ? 0xffd27a
+      : item.kind === "valve" ? 0x8fe0c0
+      : item.kind === "body" ? 0xd06a3a
+      : item.kind === "radio" ? 0x9bc17a
+      : item.kind === "note" ? 0xd8c9a3
+      : 0xb6d68f;
+    const y = item.kind === "body" ? 0.45 : 0.34;
+    const scale = item.kind === "body" ? 0.55 : 0.34;
+    addGlow(item.group, color, 0, y, 0, scale, 0.2);
+  }
+  updateDoorIndicators();
 
   const info = LEVEL_INFO[id] || { chapter: "INTAKE", title: id.toUpperCase(), sub: "" };
   ui.chapter(info.chapter, info.title, info.sub, 2600);
@@ -1874,6 +1991,7 @@ function startDialogue() {
     { speaker: "TOKAR", text: "The scrubbers are dying. Kryl has maybe two days of air. The key is in Zarya." },
     { speaker: "TOKAR", text: "Mara says there's a city beyond the deep vents. Sanctuary. The last safe place. If it's real, we need you to reach it." },
     { speaker: "TOKAR", text: "Take this. It was your father's. Don't fire it in the vents unless you have to." },
+    { speaker: "YOU", text: "I'll go." },
   ];
   ui.dialogue(kryl.pages[0].speaker, kryl.pages[0].text);
 }
@@ -1894,7 +2012,6 @@ function advanceDialogue() {
       setWeaponModel("pistol");
       weapon.visible = true;
       audio.click();
-      ui.subtitle("Objective: reach the maintenance vent.", 3200);
     }
     updateLookHint();
   } else {
@@ -1918,16 +2035,15 @@ function interact() {
     }
     if (kryl?.nearTokar) {
       if (!kryl.talked) startDialogue();
-      else ui.subtitle("Tokar: The vent is behind the counter. Go.", 2200);
+      else ui.speak("TOKAR", "The vent is behind the counter. Go.", 2200);
       return;
     }
     if (kryl?.nearVent) {
       if (!kryl.talked) {
-        ui.subtitle("Tokar: Talk to me first, kid.", 1800);
+        ui.speak("TOKAR", "Talk to me first, kid.", 1800);
         return;
       }
-      player.frozen = true;
-      ui.fadeOut(1000).then(() => startVent());
+      enterVentFromKryl();
       return;
     }
     return;
@@ -1990,6 +2106,7 @@ function update(dt) {
   else if (state === "vision") updateVision(dt);
   else if (state === "ending") updateEnding(dt);
   updateWeapon(dt);
+  updateCollectBursts(dt);
 
   const hudOn = ["kryl", "vent", "explore", "jumpscare"].includes(state);
   if (hudOn) {
@@ -1998,7 +2115,6 @@ function update(dt) {
       medkits: player.medkits,
       mgr,
       logs: logsFound,
-      weaponName: WEAPONS[player.weapon]?.name || "UNARMED",
       ammo: player.hasGun ? player.ammo : "--",
       reserve: player.hasGun ? `/ ${player.reserve[player.weapon] ?? 0}` : "",
     });
@@ -2048,6 +2164,10 @@ document.addEventListener("mousedown", (e) => {
     return;
   }
   if (e.button !== 0) return;
+  if (dialogueOpen) {
+    advanceDialogue();
+    return;
+  }
   if (state === "jumpscare") {
     resolveJumpscare(true);
     return;
@@ -2132,8 +2252,9 @@ canvas.addEventListener("click", () => {
 });
 
 // A click anywhere on the title starts the game, even if the button's own
-// listener was not attached for any reason.
-document.addEventListener("pointerdown", () => {
+// listener was not attached for any reason. Starting on the click event keeps
+// the pointer-lock request inside a trusted user gesture.
+document.addEventListener("click", () => {
   if (state === "title") startGame();
 }, true);
 
@@ -2141,10 +2262,10 @@ function startGame() {
   if (state !== "title") return;
   const btn = document.getElementById("start");
   if (btn) {
-    btn.textContent = "ENTERING…";
     btn.classList.add("pressed");
+    btn.setAttribute("aria-busy", "true");
   }
-  window.__intakeBootStatus?.("STARTING…");
+  window.__intakeBootStatus?.("");
   try {
     audio.init();
   } catch (err) {
@@ -2159,8 +2280,8 @@ function startGame() {
     console.error("INTAKE failed to start:", err);
     window.__intakeBootStatus?.("START FAILED. OPEN THE BROWSER CONSOLE OR HARD-REFRESH.");
     if (btn) {
-      btn.textContent = "TRY AGAIN";
       btn.classList.remove("pressed");
+      btn.setAttribute("aria-busy", "false");
     }
     ui.showTitle(true);
   }

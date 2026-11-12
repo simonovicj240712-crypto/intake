@@ -1,7 +1,7 @@
 # INTAKE
-### Working design document — v1.9
+### Working design document — v2.0
 
-> **Implementation status:** the first complete playable campaign is in the repo — prologue, Kryl, Dead Rail, Zarya, the deep vents, the Lair, the last crawl, and the Nest ending. It is a condensed pass; the expanded 3–3.5 hour version described below is the target for future updates. The current build also has 3D memory dioramas, branching vent mazes, a title-screen diorama, a minimal vitals/ammo HUD, and skippable memories. The visual pass is now **cel-shaded comic horror**: toon-banded lighting, black outlines, rounded organic low-poly characters, and saturated teal/orange/yellow palettes. The scene pass has added lived-in hubs, landmark set pieces, support structures, hanging lamps and light shafts.
+> **Implementation status:** the first complete playable campaign is in the repo — prologue, Kryl, Dead Rail, Zarya, the deep vents, the Lair, the last crawl, and the Nest ending. It is a condensed pass; the expanded 3–3.5 hour version described below is the target for future updates. The current build also has 3D memory dioramas, branching vent mazes, a title-screen diorama, an icon-only vitals/ammo HUD, and skippable memories. The visual pass is **cel-shaded comic horror**: toon-banded lighting, black outlines, rounded organic low-poly characters, and saturated teal/orange/yellow palettes. The scene pass has added lived-in hubs, landmark set pieces, support structures, hanging lamps and light shafts. The presentation is now **visual-first**: narration text is gone, interaction is automatic, doors show requirement pips, signage is pictograms, and words appear only in character dialogue and player responses.
 
 > **Logline:** A scavenger descends into the ventilation system of a dead metro station to restore the air and reach Sanctuary, the last safe city. The vents are not empty. Something down here learned to move through them.
 
@@ -17,6 +17,8 @@
 **Engine:** Three.js + cannon-es, vanilla JavaScript, no build step
 **Content:** Sudden loud sounds, flashing lights, claustrophobic spaces, horror themes, family tragedy, character death, stylized violence, corpses. No gore.
 **Realism target:** Systemic realism with stylized Fury Foot visuals — not photorealism.
+
+> **Visual-first rules (current build):** narration and tutorial text are removed; the mouse is captured from the play glyph; pickups, bodies, notes, fuses, valves, consoles, radios, and unlocked doors trigger automatically; locked doors communicate progress through three pips and a red/green lamp; environmental signage is pictograms; the HUD and shop are icon-led; death, retry, jumpscare, and ending screens are wordless. Words are reserved for character speech and player responses.
 
 ---
 

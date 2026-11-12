@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#040606" />
+  <meta name="build" content="0.8.0" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>INTAKE</title>
-  <link rel="stylesheet" href="css/style.css?v=11" />
+  <link rel="stylesheet" href="css/style.css?v=14" />
   <script type="importmap">
     {
       "imports": {
@@ -22,6 +23,8 @@
     window.__intakeBootStatus = function (text) {
       var el = document.getElementById("boot-status");
       if (el) el.textContent = text;
+      var btn = document.getElementById("start");
+      if (btn) btn.classList.toggle("error", /FAIL|ERROR/i.test(text));
     };
     window.addEventListener("error", function (event) {
       if (window.__intakeBooted) return;
@@ -46,90 +49,115 @@
     <div id="grain"></div>
     <div id="crosshair"></div>
 
-    <div id="chapter">
+    <div id="chapter" aria-hidden="true">
       <p id="chapter-kicker"></p>
       <h1 id="chapter-title"></h1>
       <p id="chapter-sub"></p>
     </div>
 
-    <div id="look-hint">CLICK TO LOOK</div>
-    <div id="vision-skip">E / CLICK — LET GO</div>
+    <div id="look-hint" aria-hidden="true"></div>
+    <div id="vision-skip" aria-hidden="true">
+      <svg viewBox="0 0 44 20" aria-hidden="true"><path d="M4 3l12 7-12 7zM22 3l12 7-12 7z"/></svg>
+    </div>
 
-    <div id="hud">
+    <div id="hud" aria-hidden="true">
       <div id="hud-vitals">
-        <div class="hud-caption">CONDITION</div>
+        <svg class="hud-icon heart" viewBox="0 0 64 64"><path d="M32 55S8 41.6 8 24.6A12.4 12.4 0 0 1 32 17a12.4 12.4 0 0 1 24 7.6C56 41.6 32 55 32 55z"/></svg>
         <div class="hud-bar"><div id="hud-health-bar"></div></div>
-        <div class="hud-line"><span id="hud-health">100</span> HP <span id="hud-medkits">+1 MED</span></div>
+        <span id="hud-health" class="hud-num">100</span>
+        <div class="hud-chip med">
+          <svg class="hud-icon" viewBox="0 0 64 64"><path d="M25 8h14v17h17v14H39v17H25V39H8V25h17z"/></svg>
+          <span id="hud-medkits">1</span>
+        </div>
       </div>
-      <div id="hud-mgr"><span id="hud-mgr-num">0</span> MGR <span id="hud-logs">0</span> LOGS</div>
+      <div id="hud-mgr">
+        <div class="hud-chip coin">
+          <svg class="hud-icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="23"/><circle cx="32" cy="32" r="14" class="ring"/></svg>
+          <span id="hud-mgr-num">0</span>
+        </div>
+        <div class="hud-chip page">
+          <svg class="hud-icon" viewBox="0 0 64 64"><path d="M14 6h26l10 10v42H14z"/><path d="M40 6v12h10M22 28h20M22 37h20M22 46h14" class="ring"/></svg>
+          <span id="hud-logs">0</span>
+        </div>
+      </div>
       <div id="hud-weapon">
-        <div id="hud-weapon-name">PM PISTOL</div>
+        <svg class="hud-icon bullet" viewBox="0 0 64 64"><path d="M22 6h20v10l6 18v4H38v20h-6V38H16v-4l6-18z"/></svg>
         <div id="hud-ammo"><span id="hud-ammo-num">8</span><span id="hud-reserve">/ 16</span></div>
+        <div id="hud-weapon-name" class="sr-only"></div>
       </div>
     </div>
 
-    <div id="vision">
+    <div id="vision" aria-hidden="true">
       <div id="vision-inner">
-        <p id="vision-kicker">A MEMORY THAT ISN'T YOURS</p>
-        <div id="vision-text"></div>
+        <p id="vision-kicker" class="sr-only"></p>
+        <div id="vision-text" class="sr-only"></div>
         <div id="vision-silhouette"></div>
       </div>
     </div>
 
     <div id="shop">
       <div id="shop-panel">
-        <p class="shop-kicker">ZARYA STATION</p>
-        <h2>VERA'S TABLE</h2>
-        <p id="shop-mgr">0 MGR</p>
+        <div class="shop-head">
+          <div class="shop-avatar" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><path d="M32 9a13 13 0 1 1 0 26 13 13 0 0 1 0-26zM9 58c1-13 10-20 23-20s22 7 23 20z"/></svg>
+          </div>
+          <div id="shop-mgr">
+            <svg class="hud-icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="23"/><circle cx="32" cy="32" r="14" class="ring"/></svg>
+            <span id="shop-mgr-num">0</span>
+          </div>
+          <button id="shop-close" class="icon-button" type="button" aria-label="Close shop">
+            <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 14l36 36M50 14L14 50"/></svg>
+          </button>
+        </div>
         <div id="shop-items"></div>
-        <button id="shop-close" class="ink-button">LEAVE</button>
       </div>
     </div>
 
     <div id="hurt"></div>
 
     <div id="subtitle"></div>
-    <div id="prompt"></div>
+    <div id="prompt" aria-hidden="true"></div>
 
     <div id="dialogue">
       <div id="dialogue-speaker"></div>
       <div id="dialogue-text"></div>
-      <div id="dialogue-hint">E / ENTER</div>
+      <div id="dialogue-hint" aria-hidden="true">
+        <svg viewBox="0 0 26 18"><path d="M3 3l10 10L23 3"/></svg>
+      </div>
     </div>
 
     <div id="jumpscare">
-      <div class="js-warning">KILL IT</div>
-      <div class="js-keys">LMB &nbsp;/&nbsp; V</div>
+      <div class="js-eye" aria-hidden="true">
+        <svg viewBox="0 0 120 70"><path d="M4 35C22 8 40 2 60 2s38 6 56 33c-18 27-36 33-56 33S22 62 4 35z"/><circle cx="60" cy="35" r="17"/></svg>
+      </div>
       <div class="js-bar"><div id="jumpscare-bar"></div></div>
-      <div class="js-sub">It is already on you.</div>
     </div>
 
     <div id="death">
-      <p class="over-kicker">THE VENT IS QUIET AGAIN</p>
-      <h1>YOU DIED</h1>
-      <p class="over-sub">It was already inside the vent with you.</p>
-      <button id="retry" class="ink-button">TRY AGAIN</button>
+      <div class="over-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M32 5C18 5 9 15 9 28c0 9 4 14 9 18v8h9v-7h10v7h9v-8c5-4 9-9 9-18C55 15 46 5 32 5z"/><circle cx="23" cy="29" r="5" class="cut"/><circle cx="41" cy="29" r="5" class="cut"/><path d="M32 34l-4 8h8z" class="cut"/></svg>
+      </div>
+      <button id="retry" class="icon-button big" type="button" aria-label="Try again">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M17 25a20 20 0 1 1-1 18"/><path d="M17 9v18H3"/></svg>
+      </button>
     </div>
 
     <div id="end">
-      <p class="over-kicker">THE NEST</p>
-      <h1>INTAKE</h1>
-      <p class="over-sub">Sanctuary was already gone.</p>
-      <p class="over-small">You reached the safest city. It was a nest.</p>
-      <button id="restart" class="ink-button">PLAY AGAIN</button>
+      <div class="over-icon nest" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M32 7c13 0 23 9 23 21 0 15-10 29-23 29S9 43 9 28C9 16 19 7 32 7z"/><path d="M32 18c7 0 12 5 12 12 0 9-5 17-12 17s-12-8-12-17c0-7 5-12 12-12z" class="ring"/><path d="M32 28v14M25 32h14" class="ring"/></svg>
+      </div>
+      <button id="restart" class="icon-button big" type="button" aria-label="Play again">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M17 25a20 20 0 1 1-1 18"/><path d="M17 9v18H3"/></svg>
+      </button>
     </div>
 
     <div id="title">
       <div class="title-inner">
-        <p class="title-kicker">A VENT HORROR STORY</p>
         <h1>INTAKE</h1>
-        <p class="title-tag">One flashlight. One breath. One way out.</p>
-        <p class="title-warning">Contains sudden loud sounds, flashing lights, claustrophobic spaces, psychological horror, family tragedy, character death, stylized violence, and corpses.</p>
-        <button id="start" class="ink-button" type="button" onclick="if (window.__intakeStart) window.__intakeStart(); else window.__intakeBootStatus('LOADING ENGINE…');">ENTER THE VENTS</button>
-        <p id="boot-status" class="title-small dim"></p>
-        <p class="title-small">Headphones recommended. Desktop only. WASD + mouse.</p>
-        <p class="title-small dim">Click the screen to capture the mouse.</p>
-        <p class="title-version">BUILD 0.7.0</p>
+        <button id="start" class="play-button" type="button" aria-label="Play">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M23 11l31 21-31 21z"/></svg>
+        </button>
+        <p id="boot-status" class="sr-only" role="status"></p>
       </div>
     </div>
 
@@ -137,6 +165,6 @@
     <div id="flash"></div>
   </div>
 
-  <script type="module" src="src/main.js?v=11"></script>
+  <script type="module" src="src/main.js?v=14"></script>
 </body>
 </html>

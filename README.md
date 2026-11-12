@@ -18,7 +18,7 @@ jwebserver -p 8000 -d .
 Then open <http://127.0.0.1:8000/>.
 
 > Desktop only. Mouse + keyboard. Headphones recommended.
-> Click **ENTER THE VENTS**, then click the screen if the mouse is not captured.
+> Click the play glyph. The mouse is captured immediately; there are no look or interaction prompts.
 
 ## Current build
 
@@ -39,14 +39,17 @@ The current pass also includes:
 - **Cel-shaded comic look** — `MeshToonMaterial` lighting, thick black character outlines, rounded low-poly heads and bodies, and saturated teal/blue + orange/yellow palettes.
 - **Procedural surface textures** — riveted metal walls, concrete floors, wood planks, tile, grime, and rust.
 - **Light glow halos** around lamps, signs, warning lights, and the moon.
-- **3D memory dioramas** instead of text-only flashbacks. Press **E** or click to let go of a memory.
+- **3D memory dioramas** instead of text-only flashbacks. Click or press **E** to let go of a memory.
 - **Branching vent mazes** with dead ends, loops, hanging signs, wall fans, ducts, hazard bands, pipes, grates, crates, and flickering lamps.
+- **Visual-only interaction** — pickups, bodies, notes, fuses, valves, consoles, radios, and unlocked doors trigger automatically on approach. Doors use three progress pips and a red/green status lamp instead of text. Vera's shop is marked by a floating coin and opened with **E**.
+- **Pictogram signage** — station, rail, vent, hatch, fan, hazard, shelter, lock, air, water, and count signs are drawn as icons, never words.
+- **Show-don't-tell presentation** — narration subtitles are removed. Speech appears only for character dialogue, with clickable/Enter-advanced conversation and a player response.
 - **Scene overhaul** — Kryl is a lived-in station market with a city window and station sign; the Dead Rail has a gantry, containers, signal masts and sleepers; the Fan chamber has a huge fan housing, catwalk, console and floodlights; the safe room has a bunk, desk, shelves and stove; the Last Crawl has low bulkheads, support frames and wall lights; the Nest has an organic mound, pulsing heart and hanging pods; the prologue dining room has a sideboard, rug, curtains, clock and pictures.
-- **A title-screen diorama** behind the main menu, with a bold comic title treatment.
-- **A minimal HUD** for health, medkits, MGR, logs, current weapon, and ammo.
+- **A title-screen diorama** behind a wordless brand-and-play title.
+- **An icon-only HUD** for health, medkits, MGR, logs, and ammo.
 - **Aim-down-sights**, hit markers, enemy line-of-sight, spawn grace, knockback, and melee damage.
 - **Ceiling Crawler sightings** and ambush scares in the deep vents.
-- **A hardened start button** — click anywhere on the title, or press Enter; if the engine fails to load, the title shows a boot error instead of doing nothing.
+- **A hardened play button** — click anywhere on the title, or press Enter; if the engine fails to load, the play glyph pulses red instead of doing nothing.
 
 The full 3–3.5 hour design — more logs, side jobs, city detail, expanded Deep chapter, and more hallucinations — is in [`DESIGN.md`](DESIGN.md). This build is the foundation; future updates will expand it.
 
@@ -61,7 +64,7 @@ The full 3–3.5 hour design — more logs, side jobs, city detail, expanded Dee
 | **F** | Flashlight |
 | **Ctrl** | Crouch / crawl |
 | **Shift** | Sprint |
-| **E / Enter** | Interact / loot / advance dialogue / let go of a memory |
+| **E / Enter** | Open Vera's shop / advance dialogue / let go of a memory |
 | **1 / 2 / 3** | Pistol / shotgun / rifle |
 | **R** | Reload |
 | **T** | Check magazine and reserve |
@@ -85,10 +88,10 @@ These are development shortcuts and do not affect normal play:
 ## Known limitations
 
 - This is a condensed prototype, not the full 3–3.5 hour design.
-- Pointer lock must be granted by the browser. If the mouse does not capture, click the screen once.
-- If **ENTER THE VENTS** appears to do nothing, wait up to five seconds: the title now prints a boot error if the engine module did not load. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=11` clears old cached builds.
+- Pointer lock must be granted by the browser. Starting the game with the play glyph requests it immediately; if the browser dismisses it, click the screen once. There is deliberately no on-screen look hint.
+- If the play glyph appears to do nothing, wait up to five seconds: a hidden boot status records engine errors in the console, and the glyph pulses red on failure. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=14` clears old cached builds.
 - Some set dressing and creature animation still reads as placeholder; the maze layout is procedurally generated on every load.
-- Automated tests cover transitions, interactions, combat, shop, death/retry, and the ending, but not real user pointer-lock input.
+- Automated tests cover transitions, auto-interaction, shop, death/retry, and the ending, but not trusted user pointer-lock input.
 
 ## Tech
 

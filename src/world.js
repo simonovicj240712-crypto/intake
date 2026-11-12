@@ -315,7 +315,8 @@ export function addLightShaft(parent, color, x, y, z, height = 3, radius = 1.2, 
 }
 
 const _stationSigns = new Map();
-function stationSign(text, fg = "#ffe08a", bg = "#141a17") {  const key = `${text}|${fg}|${bg}`;
+function stationSign(text, fg = "#ffe08a", bg = "#141a17") {
+  const key = `${text}|${fg}|${bg}`;
   if (_stationSigns.has(key)) return _stationSigns.get(key);
   const canvas = document.createElement("canvas");
   canvas.width = 512;
@@ -326,11 +327,50 @@ function stationSign(text, fg = "#ffe08a", bg = "#141a17") {  const key = `${tex
   ctx.strokeStyle = "#39443d";
   ctx.lineWidth = 8;
   ctx.strokeRect(4, 4, 504, 152);
+
+  ctx.strokeStyle = fg;
   ctx.fillStyle = fg;
-  ctx.font = "bold 62px Arial Narrow, Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, 256, 82);
+  ctx.lineWidth = 6;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  // station roof and columns
+  ctx.beginPath();
+  ctx.moveTo(150, 86);
+  ctx.lineTo(256, 32);
+  ctx.lineTo(362, 86);
+  ctx.stroke();
+  ctx.strokeRect(158, 90, 18, 46);
+  ctx.strokeRect(336, 90, 18, 46);
+  // central arched doorway
+  ctx.beginPath();
+  ctx.arc(256, 110, 28, Math.PI, Math.PI * 2);
+  ctx.lineTo(284, 136);
+  ctx.lineTo(228, 136);
+  ctx.closePath();
+  ctx.stroke();
+  // small clock / lamp
+  ctx.beginPath();
+  ctx.arc(256, 62, 7, 0, Math.PI * 2);
+  ctx.fill();
+  // low city skyline at the edges
+  for (const [x, h, w] of [[46, 34, 24], [76, 22, 18], [104, 44, 22], [390, 40, 22], [418, 26, 18], [444, 48, 24]]) {
+    ctx.strokeRect(x, 136 - h, w, h);
+  }
+  // rail line and sleepers
+  ctx.strokeStyle = fg;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(34, 142);
+  ctx.lineTo(478, 142);
+  ctx.stroke();
+  ctx.lineWidth = 3;
+  for (let x = 46; x < 470; x += 30) {
+    ctx.beginPath();
+    ctx.moveTo(x, 134);
+    ctx.lineTo(x + 10, 150);
+    ctx.stroke();
+  }
+
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.minFilter = THREE.LinearFilter;
