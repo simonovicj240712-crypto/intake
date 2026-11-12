@@ -7,7 +7,20 @@ import {
   buildKryl,
   buildVent,
   makePistol,
+  makeShotgun,
+  makeRifle,
 } from "./world.js";
+import {
+  buildDeadRail,
+  buildZarya,
+  buildWarren,
+  buildFlooded,
+  buildFan,
+  buildSafeRoom,
+  buildLair,
+  buildLastCrawl,
+  buildNest,
+} from "./levels.js";
 
 const canvas = document.getElementById("c");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
@@ -43,8 +56,16 @@ camera.add(headlamp);
 const weapon = new THREE.Group();
 weapon.position.set(0.29, -0.26, -0.58);
 weapon.rotation.set(0.02, -0.06, -0.02);
-const pistol = makePistol();
-weapon.add(pistol);
+const weaponModels = {
+  pistol: makePistol(),
+  shotgun: makeShotgun(),
+  rifle: makeRifle(),
+};
+for (const model of Object.values(weaponModels)) {
+  model.visible = false;
+  weapon.add(model);
+}
+weaponModels.pistol.visible = true;
 const glove = new THREE.Mesh(
   new THREE.BoxGeometry(0.16, 0.14, 0.24),
   new THREE.MeshLambertMaterial({ color: 0x202723, flatShading: true })
@@ -63,6 +84,7 @@ const audio = new AudioEngine();
 const ui = new UI();
 const clock = new THREE.Clock();
 const keys = new Set();
+const raycaster = new THREE.Raycaster();
 
 let state = "title";
 let world = null;
@@ -71,6 +93,12 @@ let prologue = null;
 let kryl = null;
 let vent = null;
 let jumpscare = null;
+let level = null;
+let levelId = null;
+let vision = null;
+let ending = null;
+let shopOpen = false;
+let logsFound = 0;
 let dialogueOpen = false;
 let bodyLooted = false;
 let mgr = 0;
@@ -78,6 +106,12 @@ let weaponKick = 0;
 let gunshotWarned = false;
 let shake = { time: 0, intensity: 0 };
 let debugMode = false;
+
+const WEAPONS = {
+  pistol: { name: "PM pistol", cap: 8, damage: 26, spread: 0.006, pellets: 1, cooldown: 0.22 },
+  shotgun: { name: "Sawed-off", cap: 2, damage: 12, spread: 0.055, pellets: 6, cooldown: 0.55 },
+  rifle: { name: "Bolt rifle", cap: 5, damage: 72, spread: 0.0015, pellets: 1, cooldown: 0.78 },
+};
 
 const player = {
   pos: new THREE.Vector3(),
@@ -93,6 +127,70 @@ const player = {
   ammo: 8,
   hasGun: false,
   frozen: false,
+  health: 100,
+  medkits: 1,
+  weapon: "pistol",
+  mags: { pistol: 8, shotgun: 0, rifle: 0 },
+  reserve: { pistol: 16, shotgun: 0, rifle: 0 },
+  owned: { pistol: true, shotgun: false, rifle: false },
+  fireCooldown: 0,
+};
+
+const LEVEL_BUILDERS = {
+  dead_rail: buildDeadRail,
+  zarya: buildZarya,
+  warren: buildWarren,
+  flooded: buildFlooded,
+  fan: buildFan,
+  safe_room: buildSafeRoom,
+  lair: buildLair,
+  last_crawl: buildLastCrawl,
+  nest: buildNest,
+};
+
+const LEVEL_INFO = {
+  dead_rail: { chapter: "CHAPTER II", title: "THE DEAD RAIL", sub: "The surface between Kryl and Zarya" },
+  zarya: { chapter: "CHAPTER II", title: "ZARYA STATION", sub: "Everything has a price" },
+  warren: { chapter: "CHAPTER II", title: "THE WARREN", sub: "The vents get older from here" },
+  flooded: { chapter: "CHAPTER II", title: "THE FLOODED DUCT", sub: "The water is moving" },
+  fan: { chapter: "CHAPTER II", title: "THE DEAD FAN", sub: "Keep the air moving" },
+  safe_room: { chapter: "CHAPTER II", title: "SAFE ROOM", sub: "One breath before the dark" },
+  lair: { chapter: "CHAPTER III", title: "THE LAIR", sub: "The nest was here first" },
+  last_crawl: { chapter: "CHAPTER III", title: "THE LAST CRAWL", sub: "Sanctuary intake 04" },
+  nest: { chapter: "CHAPTER III", title: "THE NEST", sub: "The safest city known to man" },
+};
+
+const VISIONS = {
+  2: { kicker: "THE PASSENGER CAR", duration: 16, lines: [
+    "The carriage is full. Every seat. Every face.",
+    "They are all wearing your coat.",
+    "The train has not moved in years.",
+  ]},
+  3: { kicker: "THE TABLE", duration: 16, lines: [
+    "You are on the table. The lights are very bright.",
+    "Someone is writing your name on a clipboard.",
+    "The Tenant is holding the pen.",
+  ]},
+  4: { kicker: "THE BIRTH", duration: 18, lines: [
+    "The vent opens. Something climbs out.",
+    "It has too many joints. It has your voice.",
+    "It asks you to come closer.",
+  ]},
+  5: { kicker: "THE DROWNED", duration: 16, lines: [
+    "The water is clear around one body.",
+    "It is you. It has always been you.",
+    "The others are still waiting for the air.",
+  ]},
+  6: { kicker: "THE GUEST", duration: 16, lines: [
+    "The safe room is exactly the same.",
+    "The Tenant is sitting in your chair.",
+    "It asks how you died.",
+  ]},
+  7: { kicker: "THE MIRROR", duration: 18, lines: [
+    "Every reflection is a different death.",
+    "In one, you never left the dinner table.",
+    "The Tenant is behind you in all of them.",
+  ]},
 };
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -156,11 +254,13 @@ function loadWorld(result) {
 function resetCommon() {
   dialogueOpen = false;
   jumpscare = null;
+  vision = null;
+  ending = null;
+  shopOpen = false;
   player.frozen = false;
-  player.hasGun = false;
   player.flashlightOn = false;
   player.forcedCrawl = false;
-  player.ammo = 8;
+  player.fireCooldown = 0;
   weapon.visible = false;
   flashlight.intensity = 0;
   headlamp.intensity = 0;
@@ -172,8 +272,28 @@ function resetCommon() {
   ui.end(false);
   ui.jumpscare(false);
   ui.hideDialogue();
+  ui.shop(false);
   ui.prompt(null);
   ui.crosshair(false);
+}
+
+function setWeaponModel(id) {
+  for (const key of Object.keys(weaponModels)) weaponModels[key].visible = key === id;
+}
+
+function resetProgress() {
+  player.health = 100;
+  player.medkits = 1;
+  player.weapon = "pistol";
+  player.ammo = 8;
+  player.mags = { pistol: 8, shotgun: 0, rifle: 0 };
+  player.reserve = { pistol: 16, shotgun: 0, rifle: 0 };
+  player.owned = { pistol: true, shotgun: false, rifle: false };
+  player.hasGun = false;
+  mgr = 0;
+  logsFound = 0;
+  bodyLooted = false;
+  setWeaponModel("pistol");
 }
 
 function hideTitle() {
@@ -197,10 +317,10 @@ document.addEventListener("pointerlockerror", () => {
 function startPrologue() {
   hideTitle();
   resetCommon();
+  resetProgress();
   state = "prologue";
+  levelId = null;
   jumpscare = null;
-  bodyLooted = false;
-  mgr = 0;
   gunshotWarned = false;
 
   const res = loadWorld(buildDiningRoom());
@@ -413,6 +533,7 @@ function updatePrologue(dt) {
 function startKryl() {
   resetCommon();
   state = "kryl";
+  levelId = null;
   prologue = null;
   kryl = null;
   const res = loadWorld(buildKryl());
@@ -428,6 +549,12 @@ function startKryl() {
   player.forcedCrawl = false;
   player.frozen = false;
   player.hasGun = false;
+  player.health = 100;
+  player.medkits = Math.max(1, player.medkits);
+  player.weapon = "pistol";
+  player.ammo = 8;
+  player.mags.pistol = 8;
+  setWeaponModel("pistol");
   player.flashlightOn = false;
   flashlight.intensity = 0;
   headlamp.intensity = 2.0;
@@ -448,6 +575,7 @@ function startKryl() {
 function startVent(retry = false) {
   resetCommon();
   state = "vent";
+  levelId = null;
   prologue = null;
   kryl = null;
   const res = loadWorld(buildVent());
@@ -466,8 +594,12 @@ function startVent(retry = false) {
   player.forcedCrawl = false;
   player.frozen = false;
   player.hasGun = true;
-  player.flashlightOn = true;
+  player.health = 100;
+  player.weapon = "pistol";
   player.ammo = 8;
+  player.mags.pistol = 8;
+  setWeaponModel("pistol");
+  player.flashlightOn = true;
   flashlight.intensity = 24.0;
   headlamp.intensity = 1.2;
   weapon.visible = true;
@@ -603,7 +735,9 @@ function updateVent(dt) {
       vent.looted = true;
       bodyLooted = true;
       player.frozen = false;
-      player.ammo = Math.min(24, player.ammo + 8);
+      player.reserve.pistol += 8;
+      player.ammo = Math.min(WEAPONS.pistol.cap, player.ammo + 8);
+      player.mags.pistol = player.ammo;
       mgr += 6;
       audio.click();
       ui.prompt(null);
@@ -655,23 +789,473 @@ function updateVent(dt) {
   }
 }
 
-function beginJumpscare() {
-  if (!world || !world.refs.crawler) return;
+function updateExplore(dt) {
+  if (!level || state !== "explore") return;
+  if (shopOpen) return;
+  player.forcedCrawl = levelId === "last_crawl";
+  updatePlayer(dt);
+  if (state !== "explore") return;
+  updateEnemies(dt);
+  if (state !== "explore") return;
+
+  if (level.data.refs?.fan && level.fanOn) level.data.refs.fan.rotation.z += dt * 10;
+
+  for (const t of level.triggers) {
+    if (t.fired) continue;
+    if (distXZ(player.pos, t.pos) > t.radius) continue;
+    t.fired = true;
+    if (t.kind === "vision") {
+      startVision(t.visionId, t);
+      return;
+    }
+    if (t.kind === "crawler") {
+      triggerCrawlerJumpscare(t.crawler, () => {
+        mgr += 8;
+        if (t.crawler) t.crawler.visible = false;
+        ui.subtitle("Crawler down. +8 MGR", 1800);
+      });
+      return;
+    }
+    if (t.kind === "nest") {
+      startNestEnding();
+      return;
+    }
+  }
+
+  level.near = findNearInteractable();
+  if (level.near) ui.prompt(promptFor(level.near));
+  else ui.prompt(null);
+}
+
+function updateEnemies(dt) {
+  if (!level?.data?.enemies) return;
+  for (const enemy of level.data.enemies) {
+    if (enemy.dead) continue;
+    const group = enemy.group;
+    const d = distXZ(player.pos, group.position);
+    if (d > enemy.alertRange) continue;
+
+    const dx = player.pos.x - group.position.x;
+    const dz = player.pos.z - group.position.z;
+    group.rotation.y = Math.atan2(dx, dz);
+
+    if (enemy.type === "scavenger") {
+      if (d > 2.5) {
+        const s = enemy.speed * dt;
+        group.position.x += (dx / Math.max(0.001, d)) * s;
+        group.position.z += (dz / Math.max(0.001, d)) * s;
+      }
+      enemy.timer -= dt;
+      if (enemy.timer <= 0 && d < enemy.attackRange) {
+        enemy.timer = enemy.cooldown;
+        audio.noise({ duration: 0.1, gain: 0.1, type: "bandpass", freq: 800, q: 0.8 });
+        audio.tone({ freq: 120, endFreq: 60, duration: 0.12, type: "triangle", gain: 0.05 });
+        hurtPlayer(enemy.damage);
+        if (state !== "explore") return;
+      }
+    } else {
+      if (d > enemy.attackRange) {
+        const s = enemy.speed * dt;
+        group.position.x += (dx / Math.max(0.001, d)) * s;
+        group.position.z += (dz / Math.max(0.001, d)) * s;
+        group.position.y = enemy.baseY + Math.sin(performance.now() * 0.02) * 0.02;
+      } else {
+        enemy.timer -= dt;
+        if (enemy.timer <= 0) {
+          enemy.timer = enemy.cooldown;
+          audio.rat();
+          hurtPlayer(enemy.damage);
+          if (state !== "explore") return;
+        }
+      }
+    }
+    if (level.data.bounds) {
+      group.position.x = clamp(group.position.x, level.data.bounds.minX + 0.4, level.data.bounds.maxX - 0.4);
+      group.position.z = clamp(group.position.z, level.data.bounds.minZ + 0.4, level.data.bounds.maxZ - 0.4);
+    }
+  }
+}
+
+function findNearInteractable() {
+  if (!level?.data?.interactables) return null;
+  let best = null;
+  let bestD = Infinity;
+  for (const item of level.data.interactables) {
+    if (item.group && !item.group.visible) continue;
+    if (item.looted) continue;
+    if (item.used) continue;
+    const d = distXZ(player.pos, item.pos);
+    if (d <= item.radius && d < bestD) {
+      best = item;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+function promptFor(item) {
+  if (item.kind === "door") {
+    if (item.requirement === "fuses") {
+      return level.fuses >= item.required
+        ? "<b>E</b> OPEN THE DOOR"
+        : `<b>E</b> FUSES ${level.fuses}/${item.required}`;
+    }
+    if (item.requirement === "valves") {
+      return level.valves >= item.required
+        ? "<b>E</b> OPEN THE HATCH"
+        : `<b>E</b> VALVES ${level.valves}/${item.required}`;
+    }
+    if (item.requirement === "console") {
+      return level.fanOn ? "<b>E</b> OPEN THE HATCH" : "<b>E</b> START THE FAN FIRST";
+    }
+  }
+  if (item.kind === "fuse") return "<b>E</b> TAKE FUSE";
+  if (item.kind === "valve") return "<b>E</b> TURN VALVE";
+  if (item.kind === "console") return "<b>E</b> START THE FAN";
+  if (item.kind === "body") return "<b>E</b> SEARCH BODY";
+  if (item.kind === "note") return "<b>E</b> READ NOTE";
+  if (item.kind === "pickup") return item.item === "medkit" ? "<b>E</b> TAKE MEDKIT" : "<b>E</b> TAKE ROUNDS";
+  if (item.kind === "shop") return "<b>E</b> TRADE WITH VERA";
+  if (item.kind === "radio") return "<b>E</b> USE THE RADIO";
+  return item.prompt || "<b>E</b> INTERACT";
+}
+
+function interactLevel() {
+  if (!level || state !== "explore" || shopOpen) return;
+  const item = level.near || findNearInteractable();
+  if (!item) return;
+
+  if (item.kind === "body") {
+    item.looted = true;
+    const loot = item.loot || {};
+    let message = [];
+    if (loot.mgr) { mgr += loot.mgr; message.push(`+${loot.mgr} MGR`); }
+    if (loot.ammo) {
+      player.reserve.pistol += loot.ammo;
+      if (player.weapon === "pistol") {
+        player.ammo = Math.min(WEAPONS.pistol.cap, player.ammo + loot.ammo);
+        player.mags.pistol = player.ammo;
+      }
+      message.push(`+${loot.ammo} pistol rounds`);
+    }
+    if (loot.medkit) { player.medkits += loot.medkit; message.push("+1 medkit"); }
+    if (loot.log) { logsFound++; message.push("log recovered"); }
+    audio.click();
+    ui.subtitle(`Looted: ${message.join(" · ")}`, 2400);
+    return;
+  }
+
+  if (item.kind === "note") {
+    item.used = true;
+    if (item.group) item.group.visible = false;
+    logsFound++;
+    audio.click();
+    ui.subtitle(`LOG ${String(logsFound).padStart(2, "0")}: ${item.text}`, 6000);
+    return;
+  }
+
+  if (item.kind === "pickup") {
+    item.used = true;
+    if (item.group) item.group.visible = false;
+    if (item.item === "medkit") { player.medkits++; ui.subtitle("Medkit taken.", 1600); }
+    else { mgr += 6; ui.subtitle("+6 MGR", 1600); }
+    audio.click();
+    return;
+  }
+
+  if (item.kind === "fuse") {
+    item.used = true;
+    if (item.group) item.group.visible = false;
+    level.fuses++;
+    audio.click();
+    ui.subtitle(`Fuse taken. ${level.fuses}/3.`, 1800);
+    return;
+  }
+
+  if (item.kind === "valve") {
+    item.used = true;
+    if (item.wheel) item.wheel.rotation.z += Math.PI * 0.6;
+    level.valves++;
+    audio.metal();
+    ui.subtitle(`Valve turned. ${level.valves}/3.`, 1800);
+    return;
+  }
+
+  if (item.kind === "console") {
+    item.used = true;
+    level.fanOn = true;
+    audio.metal();
+    addShake(0.05, 0.5);
+    ui.subtitle("The fan wakes up. The hatch is open.", 2400);
+    return;
+  }
+
+  if (item.kind === "shop") {
+    openShop();
+    return;
+  }
+
+  if (item.kind === "radio") {
+    item.used = true;
+    player.health = 100;
+    audio.beacon();
+    ui.subtitle("Mara: I can still hear you. Keep moving. Sanctuary is real.", 4200);
+    setTimeout(() => { if (state === "explore") ui.subtitle("Mara: Don't stop for the voices.", 3200); }, 4400);
+    return;
+  }
+
+  if (item.kind === "door" || item.kind === "exit") {
+    const ok =
+      !item.requirement ||
+      (item.requirement === "fuses" && level.fuses >= item.required) ||
+      (item.requirement === "valves" && level.valves >= item.required) ||
+      (item.requirement === "console" && level.fanOn);
+    if (ok && item.next) {
+      goNext(item.next);
+    } else if (item.requirement === "fuses") {
+      ui.subtitle(`The door needs three fuses. ${level.fuses}/3.`, 1800);
+    } else if (item.requirement === "valves") {
+      ui.subtitle(`The hatch needs three valves. ${level.valves}/3.`, 1800);
+    } else if (item.requirement === "console") {
+      ui.subtitle("The hatch is sealed. Start the fan first.", 2000);
+    }
+    return;
+  }
+
+  if (item.kind === "nest") {
+    startNestEnding();
+  }
+}
+
+function goNext(next) {
+  if (!next) return;
+  player.frozen = true;
+  ui.prompt(null);
+  ui.fadeOut(900).then(() => startLevel(next));
+}
+
+function startLevel(id, retry = false) {
+  if (!LEVEL_BUILDERS[id]) return;
+  resetCommon();
+  state = "explore";
+  levelId = id;
+  prologue = null;
+  kryl = null;
+  vent = null;
+
+  const data = LEVEL_BUILDERS[id]();
+  loadWorld(data);
+  scene.background.setHex(data.background ?? 0x030505);
+  if (data.fog) setFog(data.fog.color, data.fog.density);
+  if (data.ambient) {
+    ambient.color.setHex(data.ambient.color);
+    ambient.intensity = data.ambient.intensity;
+  }
+
+  player.pos.copy(data.spawn);
+  player.pos.y = 0;
+  player.yaw = 0;
+  player.pitch = 0;
+  player.height = 1.65;
+  player.crouched = false;
+  player.forcedCrawl = id === "last_crawl";
+  player.frozen = false;
+  player.health = id === "safe_room" || id === "zarya" ? 100 : retry ? 100 : Math.max(35, player.health);
+  player.medkits = Math.max(1, player.medkits);
+  player.hasGun = true;
+  player.weapon = player.weapon || "pistol";
+  player.ammo = player.mags[player.weapon] ?? 8;
+  player.mags[player.weapon] = player.ammo;
+  player.flashlightOn = id !== "nest";
+  flashlight.intensity = player.flashlightOn ? 24.0 : 0;
+  headlamp.intensity = id === "dead_rail" ? 1.6 : id === "nest" ? 0.9 : 1.2;
+  weapon.visible = id !== "nest";
+  setWeaponModel(player.weapon);
+  camera.position.set(player.pos.x, player.height, player.pos.z);
+  applyLook();
+  ui.crosshair(id !== "nest");
+  ui.prompt(null);
+  audio.setAmbient(id === "dead_rail" ? 0.07 : 0.055);
+
+  level = {
+    id,
+    data,
+    triggers: data.triggers.map((t) => ({ ...t, fired: false })),
+    fuses: 0,
+    valves: 0,
+    fanOn: false,
+    near: null,
+  };
+
+  const info = LEVEL_INFO[id] || { chapter: "INTAKE", title: id.toUpperCase(), sub: "" };
+  ui.chapter(info.chapter, info.title, info.sub, 2600);
+  if (id === "dead_rail") {
+    setTimeout(() => {
+      if (state === "explore") ui.subtitle("WASD move · LMB fire · F flashlight · E interact · H medkit", 5200);
+    }, 2400);
+  }
+  ui.setFade(1, 0);
+  setTimeout(() => ui.fadeIn(900), 100);
+}
+
+function openShop() {
+  if (shopOpen || state !== "explore") return;
+  shopOpen = true;
+  player.frozen = true;
+  ui.prompt(null);
+  if (document.pointerLockElement === canvas) document.exitPointerLock();
+  ui.shop(true);
+  refreshShop();
+  audio.click();
+}
+
+function closeShop() {
+  shopOpen = false;
+  player.frozen = false;
+  ui.shop(false);
+  lockPointer();
+}
+
+function refreshShop() {
+  const items = [
+    { id: "shotgun", name: "Sawed-off shotgun", desc: "Two shells. Very loud. Very close.", price: 28, owned: player.owned.shotgun },
+    { id: "rifle", name: "Bolt-action rifle", desc: "Slow, precise, expensive.", price: 45, owned: player.owned.rifle },
+    { id: "pistol_ammo", name: "Pistol rounds ×12", desc: "For the PM.", price: 4 },
+    { id: "shotgun_ammo", name: "Shotgun shells ×8", desc: "For the sawed-off.", price: 5 },
+    { id: "rifle_ammo", name: "Rifle rounds ×10", desc: "For the bolt-action.", price: 6 },
+    { id: "medkit", name: "Medkit", desc: "Patches you up. Mostly.", price: 8 },
+  ];
+  for (const item of items) item.mgr = mgr;
+  ui.shopMgr(mgr);
+  ui.shopItems(items, (item) => buyShopItem(item));
+}
+
+function buyShopItem(item) {
+  if (!shopOpen || item.owned || item.price > mgr) return;
+  mgr -= item.price;
+  if (item.id === "shotgun") {
+    player.owned.shotgun = true;
+    player.mags.shotgun = 2;
+    player.reserve.shotgun += 8;
+    ui.subtitle("Bought the sawed-off. Press 2 to equip.", 2600);
+  } else if (item.id === "rifle") {
+    player.owned.rifle = true;
+    player.mags.rifle = 5;
+    player.reserve.rifle += 10;
+    ui.subtitle("Bought the bolt-action. Press 3 to equip.", 2600);
+  } else if (item.id === "pistol_ammo") {
+    player.reserve.pistol += 12;
+    ui.subtitle("+12 pistol rounds.", 1800);
+  } else if (item.id === "shotgun_ammo") {
+    player.reserve.shotgun += 8;
+    ui.subtitle("+8 shotgun shells.", 1800);
+  } else if (item.id === "rifle_ammo") {
+    player.reserve.rifle += 10;
+    ui.subtitle("+10 rifle rounds.", 1800);
+  } else if (item.id === "medkit") {
+    player.medkits++;
+    ui.subtitle("+1 medkit.", 1800);
+  }
+  audio.click();
+  refreshShop();
+}
+
+function startVision(id, trigger) {
+  const data = VISIONS[id];
+  if (!data || state !== "explore") return;
+  state = "vision";
+  player.frozen = true;
+  ui.crosshair(false);
+  ui.prompt(null);
+  ui.vision(true, data.kicker, data.lines[0]);
+  audio.whisper();
+  addShake(0.02, 0.4);
+  vision = { id, data, t: 0, index: 0, trigger, duration: data.duration };
+}
+
+function updateVision(dt) {
+  if (!vision) return;
+  vision.t += dt;
+  const lineIndex = Math.min(
+    vision.data.lines.length - 1,
+    Math.floor((vision.t / vision.duration) * vision.data.lines.length)
+  );
+  if (lineIndex !== vision.index) {
+    vision.index = lineIndex;
+    ui.visionText(vision.data.lines[lineIndex]);
+    audio.whisper();
+  }
+  if (vision.t >= vision.duration) {
+    ui.vision(false);
+    state = "explore";
+    player.frozen = false;
+    ui.crosshair(true);
+    audio.whisper();
+    vision = null;
+  }
+}
+
+function startNestEnding() {
+  if (state === "ending") return;
+  state = "ending";
+  player.frozen = true;
+  ui.crosshair(false);
+  ui.prompt(null);
+  ui.subtitle("They are all looking at you.", 2600);
+  audio.whisper();
+  addShake(0.025, 1.0);
+  ending = { t: 0, shown: false, faded: false };
+}
+
+function updateEnding(dt) {
+  if (!ending) return;
+  ending.t += dt;
+  if (ending.t > 2.5 && !ending.shown) {
+    ending.shown = true;
+    ui.vision(true, "THE LAST FLASH", "Sanctuary. The best and safest city known to man.");
+    audio.flash();
+    addShake(0.06, 0.8);
+  }
+  if (ending.t > 7.5) ui.visionText("It is in pieces. It is full of monsters.");
+  if (ending.t > 11.5) ui.visionText("They want you to see it before they take you.");
+  if (ending.t > 14.0 && !ending.faded) {
+    ending.faded = true;
+    ui.vision(false);
+    ui.flash(500, "#e8d0a8");
+    audio.scream();
+    addShake(0.12, 1.2);
+    ui.fadeOut(1400).then(() => {
+      state = "end";
+      ui.end(true);
+      ui.setFade(1, 0);
+      audio.setAmbient(0.0);
+    });
+  }
+}
+
+function retryLevel() {
+  ui.death(false);
+  if (levelId) startLevel(levelId, true);
+  else if (vent) startVent(true);
+  else startKryl();
+}
+
+function triggerCrawlerJumpscare(crawler, onSuccess = null) {
+  if (!crawler) return;
+  const prevState = state;
   state = "jumpscare";
-  const refs = world.refs;
-  const c = refs.crawler;
   const forward = new THREE.Vector3();
   camera.getWorldDirection(forward);
   forward.y = 0;
   forward.normalize();
-  c.visible = true;
-  c.position.set(
+  crawler.visible = true;
+  crawler.position.set(
     camera.position.x + forward.x * 1.18,
     0.52,
     camera.position.z + forward.z * 1.18
   );
-  c.scale.set(1.5, 1.5, 1.5);
-  c.lookAt(camera.position.x, 0.8, camera.position.z);
+  crawler.scale.set(1.5, 1.5, 1.5);
+  crawler.lookAt(camera.position.x, 0.8, camera.position.z);
   ui.jumpscare(true);
   ui.jumpscareProgress(1);
   ui.hideChapter();
@@ -679,7 +1263,14 @@ function beginJumpscare() {
   ui.crosshair(false);
   audio.scream();
   addShake(0.07, 0.6);
-  jumpscare = { t: 0, duration: 1.8, resolved: false };
+  jumpscare = { t: 0, duration: 1.8, resolved: false, crawler, prevState, onSuccess };
+}
+
+function beginJumpscare() {
+  if (!world?.refs?.crawler) return;
+  triggerCrawlerJumpscare(world.refs.crawler, () => {
+    if (vent) vent.crawlerKilled = true;
+  });
 }
 
 function updateJumpscare(dt) {
@@ -687,9 +1278,10 @@ function updateJumpscare(dt) {
   jumpscare.t += dt;
   const p = 1 - jumpscare.t / jumpscare.duration;
   ui.jumpscareProgress(p);
-  if (world?.refs?.crawler) {
-    world.refs.crawler.scale.setScalar(1.5 + jumpscare.t * 0.1);
-    world.refs.crawler.rotation.z = Math.sin(jumpscare.t * 30) * 0.06;
+  const c = jumpscare.crawler;
+  if (c) {
+    c.scale.setScalar(1.5 + jumpscare.t * 0.1);
+    c.rotation.z = Math.sin(jumpscare.t * 30) * 0.06;
   }
   addShake(0.04, 0.1);
   if (jumpscare.t >= jumpscare.duration) resolveJumpscare(false);
@@ -698,16 +1290,17 @@ function updateJumpscare(dt) {
 function resolveJumpscare(success) {
   if (!jumpscare || jumpscare.resolved) return;
   jumpscare.resolved = true;
+  const j = jumpscare;
   ui.jumpscare(false);
   if (success) {
-    state = "vent";
+    state = j.prevState || "vent";
     player.frozen = false;
-    vent.crawlerKilled = true;
     ui.crosshair(true);
-    if (world?.refs?.crawler) {
-      world.refs.crawler.rotation.z = Math.PI / 2;
-      world.refs.crawler.position.y = 0.14;
-      world.refs.crawler.scale.setScalar(1.3);
+    if (j.onSuccess) j.onSuccess();
+    if (j.crawler) {
+      j.crawler.rotation.z = Math.PI / 2;
+      j.crawler.position.y = 0.14;
+      j.crawler.scale.setScalar(1.3);
     }
     audio.scream();
     ui.subtitle("It stops moving. The vent is quiet again.", 2600);
@@ -721,18 +1314,85 @@ function resolveJumpscare(success) {
   }
 }
 
+function findEnemyRef(obj) {
+  let cur = obj;
+  while (cur) {
+    if (cur.userData?.enemyRef) return cur.userData.enemyRef;
+    cur = cur.parent;
+  }
+  return null;
+}
+
+function killEnemy(enemy) {
+  if (!enemy || enemy.dead) return;
+  enemy.dead = true;
+  enemy.group.visible = false;
+  const reward = enemy.type === "scavenger" ? 7 : enemy.type === "crawler" ? 10 : 3;
+  mgr += reward;
+  player.reserve.pistol += enemy.type === "scavenger" ? 4 : 2;
+  audio.click();
+  ui.subtitle(`${enemy.type === "scavenger" ? "Scavenger" : enemy.type === "rat" ? "Rat" : "Crawler"} down. +${reward} MGR`, 1600);
+}
+
+function hurtPlayer(amount) {
+  if (state === "dead" || state === "end" || state === "ending") return;
+  player.health = Math.max(0, player.health - amount);
+  ui.hurt();
+  audio.heartbeat(0.12);
+  addShake(0.035, 0.25);
+  if (player.health <= 0) {
+    state = "dead";
+    player.frozen = true;
+    ui.crosshair(false);
+    ui.death(true);
+    audio.heartbeat(0.12);
+  }
+}
+
 function fire() {
-  if (state !== "vent" || dialogueOpen) return;
+  if (state !== "vent" && state !== "explore") return;
+  if (dialogueOpen || shopOpen) return;
+  if (player.fireCooldown > 0) return;
   if (player.ammo <= 0) {
     audio.click();
     ui.subtitle("Empty. R to reload.", 1400);
     return;
   }
+
+  const spec = WEAPONS[player.weapon];
   player.ammo--;
+  player.mags[player.weapon] = player.ammo;
+  player.fireCooldown = spec.cooldown;
   audio.gunshot();
   muzzle.intensity = 7;
   weaponKick = 0.16;
   addShake(0.018, 0.14);
+
+  const groups = [];
+  if (level?.data?.enemies) {
+    for (const e of level.data.enemies) if (!e.dead) groups.push(e.group);
+  }
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  const origin = camera.position.clone();
+  for (let i = 0; i < spec.pellets; i++) {
+    const shot = dir.clone();
+    shot.x += (Math.random() - 0.5) * spec.spread * 2;
+    shot.y += (Math.random() - 0.5) * spec.spread * 2;
+    shot.z += (Math.random() - 0.5) * spec.spread * 2;
+    shot.normalize();
+    raycaster.set(origin, shot);
+    raycaster.far = 45;
+    const hits = raycaster.intersectObjects(groups, true);
+    if (hits.length) {
+      const ref = findEnemyRef(hits[0].object);
+      if (ref) {
+        ref.health -= spec.damage;
+        if (ref.health <= 0) killEnemy(ref);
+      }
+    }
+  }
+
   if (!gunshotWarned) {
     gunshotWarned = true;
     ui.subtitle("A gunshot in the vent is a dinner bell.", 2200);
@@ -740,16 +1400,53 @@ function fire() {
 }
 
 function reload() {
-  if (state !== "vent") return;
-  player.ammo = 8;
+  if (state !== "vent" && state !== "explore") return;
+  const spec = WEAPONS[player.weapon];
+  const need = spec.cap - player.ammo;
+  const take = Math.min(need, player.reserve[player.weapon]);
+  if (take <= 0) {
+    audio.click();
+    ui.subtitle("No spare rounds for this weapon.", 1400);
+    return;
+  }
+  player.reserve[player.weapon] -= take;
+  player.ammo += take;
+  player.mags[player.weapon] = player.ammo;
   audio.click();
-  ui.subtitle("Reloaded. 8 in the magazine.", 1500);
+  ui.subtitle(`Reloaded. ${player.ammo} in the ${spec.name}.`, 1600);
 }
 
 function checkAmmo() {
-  if (state !== "vent") return;
+  if (state !== "vent" && state !== "explore") return;
+  const spec = WEAPONS[player.weapon];
   audio.click();
-  ui.subtitle(`${player.ammo} in the magazine.`, 1500);
+  ui.subtitle(`${player.ammo}/${spec.cap} in the ${spec.name}. ${player.reserve[player.weapon]} spare.`, 2200);
+}
+
+function switchWeapon(id) {
+  if (!player.owned[id] || player.weapon === id) return;
+  if (state !== "vent" && state !== "explore" && state !== "kryl") return;
+  player.mags[player.weapon] = player.ammo;
+  player.weapon = id;
+  player.ammo = player.mags[id];
+  setWeaponModel(id);
+  audio.click();
+  ui.subtitle(WEAPONS[id].name, 1200);
+}
+
+function useMedkit() {
+  if (player.medkits <= 0) {
+    ui.subtitle("No medkits.", 1200);
+    return;
+  }
+  if (player.health >= 100) {
+    ui.subtitle("You are not hurt enough.", 1200);
+    return;
+  }
+  player.medkits--;
+  player.health = Math.min(100, player.health + 45);
+  audio.click();
+  ui.subtitle(`Medkit used. ${player.medkits} left.`, 1600);
 }
 
 function melee() {
@@ -757,13 +1454,13 @@ function melee() {
     resolveJumpscare(true);
     return;
   }
-  if (state !== "vent") return;
+  if (state !== "vent" && state !== "explore") return;
   audio.noise({ duration: 0.12, gain: 0.07, type: "highpass", freq: 1400 });
   ui.subtitle("You slash at the dark.", 1200);
 }
 
 function toggleFlashlight() {
-  if (state !== "vent" && state !== "kryl") return;
+  if (state !== "vent" && state !== "kryl" && state !== "explore") return;
   player.flashlightOn = !player.flashlightOn;
   flashlight.intensity = player.flashlightOn ? 24.0 : 0;
   audio.click();
@@ -783,12 +1480,7 @@ function openEnd() {
   player.frozen = true;
   ui.prompt(null);
   ui.crosshair(false);
-  ui.fadeOut(1000).then(() => {
-    state = "end";
-    audio.setAmbient(0.012);
-    ui.end(true);
-    ui.setFade(1, 0);
-  });
+  ui.fadeOut(1000).then(() => startLevel("dead_rail"));
 }
 
 function startDialogue() {
@@ -814,7 +1506,10 @@ function advanceDialogue() {
     if (!kryl.talked) {
       kryl.talked = true;
       player.hasGun = true;
+      player.weapon = "pistol";
       player.ammo = 8;
+      player.mags.pistol = 8;
+      setWeaponModel("pistol");
       weapon.visible = true;
       audio.click();
       ui.subtitle("Objective: reach the maintenance vent.", 3200);
@@ -825,6 +1520,14 @@ function advanceDialogue() {
 }
 
 function interact() {
+  if (shopOpen) {
+    closeShop();
+    return;
+  }
+  if (state === "explore") {
+    interactLevel();
+    return;
+  }
   if (state === "kryl") {
     if (dialogueOpen) {
       advanceDialogue();
@@ -860,6 +1563,7 @@ function interact() {
 }
 
 function updateWeapon(dt) {
+  player.fireCooldown = Math.max(0, player.fireCooldown - dt);
   weaponKick = Math.max(0, weaponKick - dt * 1.8);
   weapon.position.z = -0.58 + weaponKick;
   weapon.rotation.x = 0.02 - weaponKick * 0.45;
@@ -882,7 +1586,10 @@ function update(dt) {
   if (state === "prologue") updatePrologue(dt);
   else if (state === "kryl") updateKryl(dt);
   else if (state === "vent") updateVent(dt);
+  else if (state === "explore") updateExplore(dt);
   else if (state === "jumpscare") updateJumpscare(dt);
+  else if (state === "vision") updateVision(dt);
+  else if (state === "ending") updateEnding(dt);
   updateWeapon(dt);
 }
 
@@ -927,11 +1634,12 @@ document.addEventListener("mousedown", (e) => {
     resolveJumpscare(true);
     return;
   }
-  if (state === "vent" && document.pointerLockElement === canvas && !dialogueOpen) fire();
+  if ((state === "vent" || state === "explore") && document.pointerLockElement === canvas && !dialogueOpen && !shopOpen) fire();
 });
 
 document.addEventListener("keydown", (e) => {
   if (e.code === "Escape") {
+    if (shopOpen) closeShop();
     ui.prompt(null);
     return;
   }
@@ -939,12 +1647,20 @@ document.addEventListener("keydown", (e) => {
     if (e.code === "KeyV") resolveJumpscare(true);
     return;
   }
+  if (state === "vision" || state === "ending") return;
   if (e.code === "KeyE" || e.code === "Enter") {
     if (dialogueOpen) {
       advanceDialogue();
       return;
     }
     interact();
+    return;
+  }
+  if (e.code === "Digit1") { switchWeapon("pistol"); return; }
+  if (e.code === "Digit2") { switchWeapon("shotgun"); return; }
+  if (e.code === "Digit3") { switchWeapon("rifle"); return; }
+  if (e.code === "KeyH") {
+    useMedkit();
     return;
   }
   if (e.code === "KeyF") {
@@ -988,8 +1704,12 @@ document.getElementById("start").addEventListener("click", () => {
 document.getElementById("retry").addEventListener("click", () => {
   audio.init();
   ui.death(false);
-  startVent(true);
+  retryLevel();
   lockPointer();
+});
+
+document.getElementById("shop-close").addEventListener("click", () => {
+  closeShop();
 });
 
 document.getElementById("restart").addEventListener("click", () => {
@@ -1006,6 +1726,12 @@ window.__intake = {
   get kryl() { return kryl; },
   get prologue() { return prologue; },
   get refs() { return world?.refs; },
+  get level() { return level; },
+  get levelId() { return levelId; },
+  get health() { return player.health; },
+  get logs() { return logsFound; },
+  get weapon() { return player.weapon; },
+  get owned() { return player.owned; },
   get keys() { return [...keys]; },
   get crouched() { return player.crouched; },
   get scene() { return scene; },
@@ -1019,7 +1745,15 @@ window.__intake = {
       pos: player.pos.toArray(),
       ammo: player.ammo,
       mgr,
+      health: player.health,
+      medkits: player.medkits,
+      weapon: player.weapon,
+      owned: { ...player.owned },
       hasGun: player.hasGun,
+      levelId,
+      logs: logsFound,
+      shopOpen,
+      vision: vision ? { id: vision.id, t: vision.t } : null,
       prompt: document.getElementById("prompt").textContent,
       promptOn: document.getElementById("prompt").classList.contains("on"),
       subtitle: document.getElementById("subtitle").textContent,
@@ -1053,8 +1787,20 @@ window.__intake = {
     if (sceneName === "prologue") startPrologue();
     else if (sceneName === "kryl") startKryl();
     else if (sceneName === "vent") startVent();
-    else if (sceneName === "title") { resetCommon(); state = "title"; ui.showTitle(true); ui.setFade(1, 0); }
+    else if (sceneName === "title") { resetCommon(); state = "title"; levelId = null; ui.showTitle(true); ui.setFade(1, 0); }
+    else if (LEVEL_BUILDERS[sceneName]) startLevel(sceneName);
   },
+  addMgr(n) { mgr += n; ui.subtitle(`+${n} MGR`, 1200); return this.snapshot(); },
+  give(id) {
+    if (!player.owned[id]) {
+      player.owned[id] = true;
+      player.mags[id] = WEAPONS[id].cap;
+      player.reserve[id] += WEAPONS[id].cap * 2;
+    }
+    return this.snapshot();
+  },
+  heal() { player.health = 100; player.medkits = Math.max(player.medkits, 2); ui.subtitle("Debug heal.", 1200); return this.snapshot(); },
+  useMedkit() { useMedkit(); return this.snapshot(); },
   triggerAmbush() {
     if (state === "vent") {
       vent.triggered = true;
@@ -1071,24 +1817,21 @@ window.__intake = {
   die() { resolveJumpscare(false); },
   setPos(x, z) { player.pos.set(x, 0, z); },
   look(yaw, pitch) { player.yaw = yaw; player.pitch = pitch; applyLook(); },
+  setHealth(h) { player.health = h; return this.snapshot(); },
   skipToVent() { startVent(); },
   skipToKryl() { startKryl(); },
 };
 
 const params = new URLSearchParams(window.location.search);
 window.THREE = THREE;
-if (params.get("scene") === "vent") {
+const sceneParam = params.get("scene");
+if (sceneParam === "vent" || sceneParam === "kryl" || LEVEL_BUILDERS[sceneParam]) {
   window.addEventListener("load", () => {
     setTimeout(() => {
       hideTitle();
-      startVent();
-    }, 60);
-  });
-} else if (params.get("scene") === "kryl") {
-  window.addEventListener("load", () => {
-    setTimeout(() => {
-      hideTitle();
-      startKryl();
+      if (sceneParam === "vent") startVent();
+      else if (sceneParam === "kryl") startKryl();
+      else startLevel(sceneParam);
     }, 60);
   });
 }

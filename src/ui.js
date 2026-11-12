@@ -17,6 +17,14 @@ export class UI {
       jumpscareBar: document.getElementById("jumpscare-bar"),
       death: document.getElementById("death"),
       end: document.getElementById("end"),
+      hurt: document.getElementById("hurt"),
+      vision: document.getElementById("vision"),
+      visionKicker: document.getElementById("vision-kicker"),
+      visionText: document.getElementById("vision-text"),
+      shop: document.getElementById("shop"),
+      shopMgr: document.getElementById("shop-mgr"),
+      shopItems: document.getElementById("shop-items"),
+      shopClose: document.getElementById("shop-close"),
       flash: document.getElementById("flash"),
       timer: null,
       subTimer: null,
@@ -90,6 +98,54 @@ export class UI {
     this.el.jumpscareBar.style.transform = `scaleX(${Math.max(0, Math.min(1, p))})`;
   }
 
+  hurt() {
+    this.el.hurt.classList.add("on");
+    clearTimeout(this.hurtTimer);
+    this.hurtTimer = setTimeout(() => this.el.hurt.classList.remove("on"), 240);
+  }
+
+  vision(show, kicker = "", text = "") {
+    this.el.vision.classList.toggle("on", show);
+    if (show) {
+      this.el.visionKicker.textContent = kicker;
+      this.el.visionText.textContent = text;
+    }
+  }
+
+  visionText(text) {
+    this.el.visionText.textContent = text;
+  }
+
+  shop(show) {
+    this.el.shop.classList.toggle("on", show);
+  }
+
+  shopMgr(amount) {
+    this.el.shopMgr.textContent = `${amount} MGR`;
+  }
+
+  shopItems(items, onBuy) {
+    this.el.shopItems.innerHTML = "";
+    for (const item of items) {
+      const row = document.createElement("div");
+      row.className = "shop-item";
+      const info = document.createElement("div");
+      info.className = "shop-item-info";
+      const name = document.createElement("strong");
+      name.textContent = item.name;
+      const desc = document.createElement("span");
+      desc.textContent = item.desc;
+      info.append(name, desc);
+      const btn = document.createElement("button");
+      btn.className = "shop-buy";
+      btn.textContent = item.owned ? "OWNED" : `${item.price} MGR`;
+      btn.disabled = item.owned || item.price > item.mgr;
+      btn.addEventListener("click", () => onBuy(item));
+      row.append(info, btn);
+      this.el.shopItems.append(row);
+    }
+  }
+
   death(show) {
     this.el.death.classList.toggle("on", show);
   }
@@ -132,5 +188,8 @@ export class UI {
     this.el.end.classList.remove("on");
     this.el.prompt.classList.remove("on");
     this.el.subtitle.classList.remove("on");
+    this.el.vision.classList.remove("on");
+    this.el.shop.classList.remove("on");
+    this.el.hurt.classList.remove("on");
   }
 }

@@ -187,6 +187,38 @@ export function makePistol() {
   return g;
 }
 
+export function makeShotgun() {
+  const g = new THREE.Group();
+  box(0.09, 0.1, 0.5, 0x3a2c21, 0, 0, -0.08, g);
+  cyl(0.032, 0.032, 0.58, 6, 0x222a28, 0, 0.035, -0.27, g, { rotX: Math.PI / 2 });
+  cyl(0.028, 0.028, 0.56, 6, 0x1b2220, -0.045, 0.005, -0.26, g, { rotX: Math.PI / 2 });
+  box(0.1, 0.13, 0.2, 0x4a3626, 0, -0.03, 0.2, g, { rotX: -0.12 });
+  box(0.06, 0.08, 0.16, 0x2a1f17, 0, -0.12, 0.27, g);
+  return g;
+}
+
+export function makeRifle() {
+  const g = new THREE.Group();
+  box(0.08, 0.09, 0.72, 0x2b322d, 0, 0, -0.16, g);
+  cyl(0.025, 0.025, 0.8, 6, 0x1b211f, 0, 0.02, -0.46, g, { rotX: Math.PI / 2 });
+  box(0.11, 0.15, 0.22, 0x3b2c20, 0, -0.02, 0.2, g, { rotX: -0.1 });
+  box(0.07, 0.07, 0.2, 0x1d2421, 0, 0.11, -0.1, g);
+  cyl(0.035, 0.035, 0.16, 6, 0x0d1210, 0, 0.19, -0.12, g, { rotX: Math.PI / 2 });
+  return g;
+}
+
+export function makeScavenger({ coat = 0x2a2b25, gun = true } = {}) {
+  const g = makeHumanoid({ coat, pants: 0x181d1a, hair: 0x1e1711 });
+  if (gun) {
+    const rifle = makeRifle();
+    rifle.scale.set(0.9, 0.9, 0.9);
+    rifle.position.set(0.25, 1.03, 0.12);
+    rifle.rotation.set(0.12, -0.12, -0.3);
+    g.add(rifle);
+  }
+  return g;
+}
+
 function addDust(parent, count = 40, area = 6, color = 0x7c8b7e) {
   const geo = new THREE.BufferGeometry();
   const arr = new Float32Array(count * 3);

@@ -1,5 +1,7 @@
 # INTAKE
-### Working design document — v1.5
+### Working design document — v1.6
+
+> **Implementation status:** the first complete playable campaign is in the repo — prologue, Kryl, Dead Rail, Zarya, the deep vents, the Lair, the last crawl, and the Nest ending. It is a condensed pass; the expanded 3–3.5 hour version described below is the target for future updates.
 
 > **Logline:** A scavenger descends into the ventilation system of a dead metro station to restore the air and reach Sanctuary, the last safe city. The vents are not empty. Something down here learned to move through them.
 
