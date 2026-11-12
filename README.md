@@ -36,7 +36,7 @@ This is the **complete playable campaign pass** — a condensed version of the f
 
 The current pass also includes:
 
-- **Cel-shaded comic look** — `MeshToonMaterial` lighting, thick black character outlines, chunky proportions, and saturated teal/blue + orange/yellow palettes.
+- **Cel-shaded comic look** — `MeshToonMaterial` lighting, thick black character outlines, rounded low-poly heads and bodies, and saturated teal/blue + orange/yellow palettes.
 - **Procedural surface textures** — riveted metal walls, concrete floors, wood planks, tile, grime, and rust.
 - **Light glow halos** around lamps, signs, warning lights, and the moon.
 - **3D memory dioramas** instead of text-only flashbacks. Press **E** or click to let go of a memory.
@@ -85,7 +85,7 @@ These are development shortcuts and do not affect normal play:
 
 - This is a condensed prototype, not the full 3–3.5 hour design.
 - Pointer lock must be granted by the browser. If the mouse does not capture, click the screen once.
-- If **ENTER THE VENTS** appears to do nothing, wait up to five seconds: the title now prints a boot error if the engine module did not load. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=9` clears old cached builds.
+- If **ENTER THE VENTS** appears to do nothing, wait up to five seconds: the title now prints a boot error if the engine module did not load. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=10` clears old cached builds.
 - Some set dressing and creature animation still reads as placeholder; the maze layout is procedurally generated on every load.
 - Automated tests cover transitions, interactions, combat, shop, death/retry, and the ending, but not real user pointer-lock input.
 

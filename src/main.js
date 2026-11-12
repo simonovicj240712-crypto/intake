@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { AudioEngine } from "./audio.js?v=9";
-import { UI } from "./ui.js?v=9";
+import { AudioEngine } from "./audio.js?v=10";
+import { UI } from "./ui.js?v=10";
 import {
   buildDiningRoom,
   buildCrawlspace,
@@ -11,7 +11,7 @@ import {
   makeRifle,
   makeCrawler,
   toonMat,
-} from "./world.js?v=9";
+} from "./world.js?v=10";
 import {
   buildDeadRail,
   buildZarya,
@@ -27,7 +27,7 @@ import {
   buildWarrenMaze,
   buildFloodedMaze,
   buildLairMaze,
-} from "./levels.js?v=9";
+} from "./levels.js?v=10";
 
 const canvas = document.getElementById("c");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });

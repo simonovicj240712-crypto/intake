@@ -353,26 +353,26 @@ export function makeHumanoid({ skin = C.flesh, coat = C.cloth, pants = 0x1a211f,
   const pantsMat = mat(pants);
   const hairMat = mat(hair);
   const shoeMat = mat(shoes);
-  // torso and coat
-  box(0.44 * s, 0.6 * s, 0.26 * s, coat, 0, 1.04 * s, 0, g, { material: coatMat });
-  box(0.48 * s, 0.1 * s, 0.28 * s, coat, 0, 0.8 * s, 0, g, { material: coatMat });
-  box(0.46 * s, 0.08 * s, 0.29 * s, 0x171b17, 0, 0.72 * s, 0, g);
-  box(0.1 * s, 0.08 * s, 0.04 * s, 0xc9a04a, 0, 0.72 * s, 0.16 * s, g);
-  box(0.34 * s, 0.36 * s, 0.07 * s, coat, 0, 0.58 * s, -0.15 * s, g, { material: coatMat });
-  box(0.32 * s, 0.12 * s, 0.27 * s, 0x1a2420, 0, 1.28 * s, 0, g);
-  cyl(0.06 * s, 0.07 * s, 0.1 * s, 6, skin, 0, 1.35 * s, 0, g, { material: skinMat });
-  // stylised box head with a flat cartoon face
-  box(0.3 * s, 0.3 * s, 0.24 * s, skin, 0, 1.48 * s, 0.01 * s, g, { material: skinMat });
-  box(0.32 * s, 0.1 * s, 0.27 * s, hair, 0, 1.63 * s, 0, g, { material: hairMat });
-  box(0.32 * s, 0.18 * s, 0.06 * s, hair, 0, 1.54 * s, -0.12 * s, g, { material: hairMat });
+  // rounded torso, coat skirt, collar
+  sphere(0.3 * s, 10, 8, coat, 0, 1.04 * s, 0, g, { material: coatMat, sx: 0.76, sy: 1.02, sz: 0.6 });
+  cyl(0.19 * s, 0.24 * s, 0.34 * s, 10, coat, 0, 0.78 * s, 0, g, { material: coatMat });
+  cyl(0.205 * s, 0.205 * s, 0.07 * s, 10, 0x171b17, 0, 0.62 * s, 0, g);
+  box(0.09 * s, 0.07 * s, 0.04 * s, 0xc9a04a, 0, 0.62 * s, 0.17 * s, g);
+  cyl(0.11 * s, 0.2 * s, 0.11 * s, 10, 0x1a2420, 0, 1.3 * s, 0, g);
+  cyl(0.06 * s, 0.07 * s, 0.12 * s, 8, skin, 0, 1.37 * s, 0, g, { material: skinMat });
+  // organic low-poly head
+  sphere(0.17 * s, 12, 10, skin, 0, 1.49 * s, 0.01 * s, g, { material: skinMat, sx: 0.95, sy: 1.05, sz: 0.95 });
+  sphere(0.1 * s, 8, 6, skin, 0, 1.39 * s, 0.075 * s, g, { material: skinMat, sx: 1.05, sy: 0.65, sz: 0.8 });
+  sphere(0.175 * s, 10, 6, hair, 0, 1.58 * s, -0.01 * s, g, { material: hairMat, sx: 1.02, sy: 0.55, sz: 1.0 });
+  sphere(0.12 * s, 8, 5, hair, 0, 1.55 * s, 0.1 * s, g, { material: hairMat, sx: 1.1, sy: 0.4, sz: 0.5 });
   for (const side of [-1, 1]) {
-    box(0.04 * s, 0.08 * s, 0.05 * s, skin, side * 0.16 * s, 1.48 * s, 0.01 * s, g, { material: skinMat });
-    box(0.075 * s, 0.045 * s, 0.018 * s, 0xe9e1cd, side * 0.068 * s, 1.5 * s, 0.148 * s, g);
-    box(0.025 * s, 0.032 * s, 0.016 * s, 0x101412, side * 0.068 * s, 1.5 * s, 0.16 * s, g);
-    box(0.085 * s, 0.022 * s, 0.018 * s, hair, side * 0.068 * s, 1.555 * s, 0.155 * s, g, { material: hairMat, rotZ: side * 0.1 });
+    sphere(0.035 * s, 6, 5, skin, side * 0.16 * s, 1.49 * s, 0.01 * s, g, { material: skinMat });
+    sphere(0.032 * s, 8, 6, 0xe9e1cd, side * 0.065 * s, 1.5 * s, 0.155 * s, g);
+    sphere(0.014 * s, 6, 4, 0x101412, side * 0.065 * s, 1.5 * s, 0.185 * s, g);
+    box(0.075 * s, 0.02 * s, 0.02 * s, hair, side * 0.066 * s, 1.56 * s, 0.155 * s, g, { material: hairMat, rotZ: side * 0.12 });
   }
-  box(0.04 * s, 0.055 * s, 0.055 * s, skin, 0, 1.44 * s, 0.16 * s, g, { material: skinMat });
-  box(0.09 * s, 0.022 * s, 0.018 * s, 0x5c3a32, 0, 1.395 * s, 0.155 * s, g);
+  sphere(0.04 * s, 7, 5, skin, 0, 1.44 * s, 0.17 * s, g, { material: skinMat, sx: 1.0, sy: 0.85, sz: 1.2 });
+  box(0.08 * s, 0.02 * s, 0.02 * s, 0x5c3a32, 0, 1.39 * s, 0.16 * s, g);
   // arms
   for (const side of [-1, 1]) {
     const sideX = side * 0.29 * s;
@@ -381,12 +381,13 @@ export function makeHumanoid({ skin = C.flesh, coat = C.cloth, pants = 0x1a211f,
     cyl(0.052 * s, 0.05 * s, 0.3 * s, 6, coat, sideX + side * 0.025 * s, 0.79 * s, 0.01 * s, g, { material: coatMat, rotZ: side * 0.12 });
     sphere(0.062 * s, 6, 5, skin, sideX + side * 0.04 * s, 0.62 * s, 0.03 * s, g, { material: skinMat });
   }
-  // legs and boots
+  // legs and rounded boots
   for (const side of [-1, 1]) {
     const sideX = side * 0.12 * s;
-    cyl(0.075 * s, 0.07 * s, 0.34 * s, 6, pants, sideX, 0.48 * s, 0, g, { material: pantsMat });
-    cyl(0.065 * s, 0.06 * s, 0.3 * s, 6, pants, sideX, 0.24 * s, 0, g, { material: pantsMat });
-    box(0.16 * s, 0.1 * s, 0.28 * s, shoes, sideX, 0.08 * s, 0.05 * s, g, { material: shoeMat });
+    cyl(0.075 * s, 0.07 * s, 0.34 * s, 8, pants, sideX, 0.48 * s, 0, g, { material: pantsMat });
+    cyl(0.065 * s, 0.06 * s, 0.3 * s, 8, pants, sideX, 0.24 * s, 0, g, { material: pantsMat });
+    cyl(0.07 * s, 0.08 * s, 0.18 * s, 8, shoes, sideX, 0.12 * s, 0.01 * s, g, { material: shoeMat });
+    sphere(0.075 * s, 8, 5, shoes, sideX, 0.07 * s, 0.14 * s, g, { material: shoeMat, sx: 1.0, sy: 0.7, sz: 1.3 });
   }
   if (outline) outlineGroup(g);
   return g;
@@ -395,16 +396,13 @@ export function makeHumanoid({ skin = C.flesh, coat = C.cloth, pants = 0x1a211f,
 export function makeTenant(height = 2.45) {
   const g = new THREE.Group();
   const blackMat = mat(0x020202);
-  box(0.4, height * 0.52, 0.24, 0x020202, 0, height * 0.56, 0, g, { material: blackMat });
-  box(0.34, height * 0.14, 0.22, 0x020202, 0, height * 0.3, 0, g, { material: blackMat });
-  const head = sphere(0.155, 8, 6, 0x020202, 0, height * 0.82, 0, g, { material: blackMat, sy: 1.25 });
-  head.name = "head";
+  cyl(0.17, 0.24, height * 0.55, 8, 0x020202, 0, height * 0.52, 0, g, { material: blackMat });
+  sphere(0.19, 10, 8, 0x020202, 0, height * 0.84, 0, g, { material: blackMat, sy: 1.25 });
   for (const side of [-1, 1]) {
-    box(0.1, height * 0.48, 0.1, 0x020202, side * 0.27, height * 0.55, 0, g, { material: blackMat, rotZ: side * 0.035 });
-    box(0.11, height * 0.46, 0.12, 0x020202, side * 0.1, height * 0.2, 0, g, { material: blackMat });
+    cyl(0.055, 0.045, height * 0.48, 6, 0x020202, side * 0.24, height * 0.52, 0, g, { material: blackMat, rotZ: side * 0.035 });
+    cyl(0.075, 0.06, height * 0.46, 6, 0x020202, side * 0.1, height * 0.23, 0, g, { material: blackMat, rotZ: side * 0.02 });
   }
   // no face, no reflection; intentionally a hole
-  outlineGroup(g);
   return g;
 }
 
@@ -456,49 +454,49 @@ export function makeCrawler() {
   const pale = 0xb8b39d;
   const pale2 = 0x9c9782;
   const dark = 0x241d18;
-  // low, long body with an exposed spine
-  box(0.52, 0.34, 1.05, pale2, 0, 0.62, 0, g);
+  // low, long organic body
+  sphere(0.32, 10, 7, pale2, 0, 0.64, 0, g, { sx: 0.9, sy: 0.62, sz: 1.7 });
+  sphere(0.26, 8, 6, 0x8a8574, 0, 0.52, 0.05, g, { sx: 1.0, sy: 0.45, sz: 1.4 });
+  // exposed spine ridges
   for (let i = 0; i < 5; i++) {
-    box(0.08, 0.1 + i * 0.012, 0.12, pale, 0, 0.82, -0.35 + i * 0.17, g, { rotX: -0.1 });
+    cyl(0.015, 0.055, 0.15, 5, pale, 0, 0.83, -0.35 + i * 0.17, g, { rotX: -0.25 });
   }
   // ribs
   for (const side of [-1, 1]) {
     for (let i = 0; i < 3; i++) {
-      box(0.05, 0.18, 0.05, 0x8c8774, side * 0.28, 0.61, -0.25 + i * 0.22, g, { rotZ: side * 0.45 });
+      cyl(0.016, 0.016, 0.26, 5, 0x8c8774, side * 0.23, 0.6, -0.25 + i * 0.22, g, { rotZ: side * 0.7, rotX: 0.15 });
     }
   }
-  // elongated head
-  sphere(0.25, 8, 6, pale, 0, 0.76, 0.5, g, { sx: 1.25, sy: 0.9, sz: 1.0 });
-  box(0.3, 0.14, 0.24, pale2, 0, 0.69, 0.66, g);
-  box(0.2, 0.09, 0.09, 0x0a0807, 0, 0.65, 0.78, g);
+  // elongated head and snout
+  sphere(0.26, 10, 7, pale, 0, 0.78, 0.55, g, { sx: 1.1, sy: 0.85, sz: 1.15 });
+  sphere(0.14, 8, 6, pale2, 0, 0.7, 0.8, g, { sx: 1.0, sy: 0.72, sz: 1.2 });
+  box(0.2, 0.07, 0.12, 0x0a0807, 0, 0.66, 0.87, g);
   // teeth
   for (const side of [-1, 1]) {
     for (let i = 0; i < 3; i++) {
-      cyl(0.008, 0.022, 0.09, 5, 0xd9d0b0, side * (0.025 + i * 0.03), 0.6, 0.8, g, { rotX: Math.PI });
+      cyl(0.008, 0.022, 0.09, 5, 0xd9d0b0, side * (0.025 + i * 0.03), 0.62, 0.9, g, { rotX: Math.PI });
     }
   }
   // black eye pits, no eyes
-  sphere(0.035, 6, 4, 0x080605, 0.09, 0.79, 0.72, g);
-  sphere(0.035, 6, 4, 0x080605, -0.09, 0.79, 0.72, g);
-  // long arms and claws
+  sphere(0.035, 6, 4, 0x080605, 0.09, 0.82, 0.78, g);
+  sphere(0.035, 6, 4, 0x080605, -0.09, 0.82, 0.78, g);
+  // long arms with claws
   for (const side of [-1, 1]) {
-    box(0.1, 0.82, 0.1, pale, side * 0.3, 0.35, 0.22, g, { rotX: -0.75, rotZ: side * 0.2 });
-    box(0.11, 0.28, 0.11, pale2, side * 0.4, 0.04, 0.58, g);
+    sphere(0.095, 7, 5, pale, side * 0.27, 0.7, 0.3, g);
+    cyl(0.055, 0.045, 0.5, 6, pale, side * 0.33, 0.42, 0.4, g, { rotX: -0.55, rotZ: side * 0.15 });
+    cyl(0.045, 0.035, 0.42, 6, pale2, side * 0.38, 0.1, 0.68, g, { rotX: -0.25, rotZ: side * 0.1 });
     for (let i = 0; i < 3; i++) {
-      box(0.025, 0.18, 0.025, 0x6b6556, side * (0.35 + i * 0.035), 0.03, 0.72, g, { rotX: 0.2 });
+      cyl(0.005, 0.016, 0.18, 5, 0x6b6556, side * (0.32 + i * 0.04), 0.02, 0.82, g, { rotX: 0.25 });
     }
   }
   // back legs
   for (const side of [-1, 1]) {
-    box(0.13, 0.55, 0.13, pale2, side * 0.2, 0.34, -0.4, g, { rotX: 0.78 });
-    box(0.17, 0.1, 0.34, pale2, side * 0.2, 0.05, -0.62, g);
+    sphere(0.09, 7, 5, pale2, side * 0.2, 0.5, -0.35, g);
+    cyl(0.06, 0.05, 0.55, 6, pale2, side * 0.2, 0.32, -0.42, g, { rotX: 0.78 });
+    cyl(0.05, 0.04, 0.4, 6, pale2, side * 0.2, 0.08, -0.68, g, { rotX: 0.25 });
     for (let i = 0; i < 3; i++) {
-      box(0.025, 0.11, 0.025, 0x6b6556, side * (0.12 + i * 0.04), 0.02, -0.78, g, { rotX: -0.2 });
+      cyl(0.005, 0.014, 0.14, 5, 0x6b6556, side * (0.13 + i * 0.04), 0.01, -0.82, g, { rotX: -0.2 });
     }
-  }
-  // extra shoulder joints
-  for (const side of [-1, 1]) {
-    box(0.15, 0.15, 0.15, pale, side * 0.24, 0.66, 0.36, g);
   }
   g.rotation.x = -0.08;
   outlineGroup(g, 1.045);
@@ -557,8 +555,8 @@ export function makeScavenger({ coat = 0x2a2b25, gun = true } = {}) {
   box(0.3, 0.16, 0.28, 0x1f2420, 0, 1.58, -0.02, g);
   box(0.36, 0.12, 0.3, 0x232a25, 0.02, 1.5, -0.03, g, { rotZ: 0.04 });
   box(0.46, 0.08, 0.26, 0x20261f, 0, 1.26, 0, g);
-  // respirator mask
-  box(0.2, 0.15, 0.14, 0x141a17, 0, 1.41, 0.12, g);
+  // rounded respirator mask
+  sphere(0.12, 8, 6, 0x141a17, 0, 1.41, 0.12, g, { sx: 1.2, sy: 0.85, sz: 0.85 });
   for (const side of [-1, 1]) {
     cyl(0.052, 0.052, 0.1, 7, 0x2d3530, side * 0.075, 1.36, 0.2, g, { rotX: Math.PI / 2 });
     cyl(0.058, 0.058, 0.025, 7, 0x0c1110, side * 0.075, 1.36, 0.255, g, { rotX: Math.PI / 2 });
