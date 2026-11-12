@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#040606" />
+  <title>INTAKE</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="c"></canvas>
+  </div>
+
+  <div id="ui">
+    <div id="vignette"></div>
+    <div id="grain"></div>
+    <div id="crosshair"></div>
+
+    <div id="chapter">
+      <p id="chapter-kicker"></p>
+      <h1 id="chapter-title"></h1>
+      <p id="chapter-sub"></p>
+    </div>
+
+    <div id="subtitle"></div>
+    <div id="prompt"></div>
+
+    <div id="dialogue">
+      <div id="dialogue-speaker"></div>
+      <div id="dialogue-text"></div>
+      <div id="dialogue-hint">E / ENTER</div>
+    </div>
+
+    <div id="jumpscare">
+      <div class="js-warning">KILL IT</div>
+      <div class="js-keys">LMB &nbsp;/&nbsp; V</div>
+      <div class="js-bar"><div id="jumpscare-bar"></div></div>
+      <div class="js-sub">It is already on you.</div>
+    </div>
+
+    <div id="death">
+      <p class="over-kicker">THE VENT IS QUIET AGAIN</p>
+      <h1>YOU DIED</h1>
+      <p class="over-sub">It was already inside the vent with you.</p>
+      <button id="retry" class="ink-button">TRY AGAIN</button>
+    </div>
+
+    <div id="end">
+      <p class="over-kicker">END OF THE FIRST DESCENT</p>
+      <h1>INTAKE</h1>
+      <p class="over-sub">The rest of the vents are still dark.</p>
+      <p class="over-small">Vertical slice — prologue, Kryl Station, first vent.</p>
+      <button id="restart" class="ink-button">PLAY AGAIN</button>
+    </div>
+
+    <div id="title">
+      <div class="title-inner">
+        <p class="title-kicker">A VENT HORROR STORY</p>
+        <h1>INTAKE</h1>
+        <p class="title-tag">One flashlight. One breath. One way out.</p>
+        <p class="title-warning">Contains sudden loud sounds, flashing lights, claustrophobic spaces, family tragedy, and horror themes.</p>
+        <button id="start" class="ink-button">ENTER THE VENTS</button>
+        <p class="title-small">Headphones recommended. Desktop only. WASD + mouse.</p>
+        <p class="title-small dim">Click the screen to capture the mouse.</p>
+      </div>
+    </div>
+
+    <div id="fade"></div>
+    <div id="flash"></div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
