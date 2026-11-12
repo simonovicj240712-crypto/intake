@@ -7,7 +7,7 @@ Playable in the browser. No install, no build step.
 
 ## Play
 
-**https://simonovicj240712-crypto.github.io/intake/**
+**https://simonovicj240712-crypto.github.io/intake/?v=14**
 
 Or run locally with any static file server. For example, with Java 18+:
 
