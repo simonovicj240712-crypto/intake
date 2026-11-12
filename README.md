@@ -36,13 +36,14 @@ This is the **complete playable campaign pass** — a condensed version of the f
 
 The current pass also includes:
 
+- **Cel-shaded comic look** — `MeshToonMaterial` lighting, thick black character outlines, chunky proportions, and saturated teal/blue + orange/yellow palettes.
 - **Procedural surface textures** — riveted metal walls, concrete floors, wood planks, tile, grime, and rust.
-- **Light glow halos** around lamps, signs, and warning lights.
+- **Light glow halos** around lamps, signs, warning lights, and the moon.
 - **3D memory dioramas** instead of text-only flashbacks. Press **E** or click to let go of a memory.
-- **Branching vent mazes** with dead ends, loops, wall signage, pipes, grates, crates, and flickering lights.
-- **A title-screen diorama** behind the main menu.
+- **Branching vent mazes** with dead ends, loops, hanging signs, wall fans, ducts, hazard bands, pipes, grates, crates, and flickering lamps.
+- **A title-screen diorama** behind the main menu, with a bold comic title treatment.
 - **A minimal HUD** for health, medkits, MGR, logs, current weapon, and ammo.
-- **Aim-down-sights**, hit markers, enemy line-of-sight, spawn grace, and melee damage.
+- **Aim-down-sights**, hit markers, enemy line-of-sight, spawn grace, knockback, and melee damage.
 - **Ceiling Crawler sightings** and ambush scares in the deep vents.
 - **A hardened start button** — click anywhere on the title, or press Enter; if the engine fails to load, the title shows a boot error instead of doing nothing.
 
@@ -84,7 +85,7 @@ These are development shortcuts and do not affect normal play:
 
 - This is a condensed prototype, not the full 3–3.5 hour design.
 - Pointer lock must be granted by the browser. If the mouse does not capture, click the screen once.
-- If **ENTER THE VENTS** appears to do nothing, wait up to five seconds: the title now prints a boot error if the engine module did not load. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=8` clears old cached builds.
+- If **ENTER THE VENTS** appears to do nothing, wait up to five seconds: the title now prints a boot error if the engine module did not load. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=9` clears old cached builds.
 - Some set dressing and creature animation still reads as placeholder; the maze layout is procedurally generated on every load.
 - Automated tests cover transitions, interactions, combat, shop, death/retry, and the ending, but not real user pointer-lock input.
 

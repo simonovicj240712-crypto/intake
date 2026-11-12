@@ -160,7 +160,8 @@ html, body {
   font-weight: 400;
   letter-spacing: 0.07em;
   color: var(--paper);
-  text-shadow: 0 0 30px rgba(0,0,0,0.9);
+  -webkit-text-stroke: 1.5px #090b09;
+  text-shadow: 4px 4px 0 rgba(143, 42, 28, 0.85), 0 0 30px rgba(0, 0, 0, 0.9);
 }
 #chapter-sub {
   margin: 16px 0 0;
@@ -359,29 +360,34 @@ html, body {
 #start {
   position: relative;
   z-index: 5;
-  margin-top: 30px;
-  padding: 17px 46px;
-  font-size: 14px;
-  letter-spacing: 0.3em;
-  border-color: rgba(208, 106, 58, 0.72);
-  background: rgba(158, 74, 42, 0.08);
-  box-shadow: 0 0 26px rgba(158, 74, 42, 0.16), inset 0 0 18px rgba(158, 74, 42, 0.04);
+  margin-top: 28px;
+  padding: 17px 48px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  color: #fff3df;
+  background: #b23a22;
+  border: 3px solid #090b09;
+  box-shadow: 6px 6px 0 #090b09, 0 0 30px rgba(208, 106, 58, 0.28);
   animation: startPulse 2.6s ease-in-out infinite;
   touch-action: manipulation;
 }
 #start:hover {
-  border-color: var(--rust-bright);
-  background: rgba(158, 74, 42, 0.2);
-  color: #fff3df;
+  border-color: #090b09;
+  background: #d94a2a;
+  color: #fff8e8;
+  transform: translate(-1px, -1px);
+  box-shadow: 7px 7px 0 #090b09, 0 0 40px rgba(208, 106, 58, 0.42);
 }
 #start.pressed {
   animation: none;
-  opacity: 0.65;
-  transform: scale(0.985);
+  opacity: 0.8;
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #090b09;
 }
 @keyframes startPulse {
-  0%, 100% { box-shadow: 0 0 22px rgba(158, 74, 42, 0.12), inset 0 0 18px rgba(158, 74, 42, 0.03); }
-  50% { box-shadow: 0 0 38px rgba(208, 106, 58, 0.28), inset 0 0 24px rgba(158, 74, 42, 0.07); }
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(208, 106, 58, 0)); }
+  50% { filter: drop-shadow(0 0 18px rgba(208, 106, 58, 0.5)); }
 }
 
 #boot-status {
@@ -406,6 +412,9 @@ html, body {
   left: 30px;
   bottom: 26px;
   width: 220px;
+  padding: 10px 12px;
+  background: rgba(3, 6, 5, 0.55);
+  border-left: 3px solid #d6a14a;
 }
 .hud-caption {
   color: var(--dim);
@@ -422,7 +431,7 @@ html, body {
 #hud-health-bar {
   height: 100%;
   width: 100%;
-  background: linear-gradient(90deg, #9e4a2a, #85a66a);
+  background: linear-gradient(90deg, #d94a2a, #f2c14e);
   transition: width 0.18s, background 0.3s;
 }
 .hud-line {
@@ -453,6 +462,9 @@ html, body {
   bottom: 24px;
   text-align: right;
   text-shadow: 0 2px 10px #000;
+  padding: 8px 12px;
+  background: rgba(3, 6, 5, 0.55);
+  border-right: 3px solid #d6a14a;
 }
 #hud-weapon-name {
   color: var(--dim);
@@ -480,6 +492,7 @@ html, body {
   align-items: center;
   justify-content: center;
   background:
+    radial-gradient(ellipse at 50% 44%, rgba(255, 166, 58, 0.14), transparent 46%),
     radial-gradient(ellipse at 50% 46%, rgba(5, 12, 10, 0.20), rgba(0,0,0,0.80) 72%),
     linear-gradient(180deg, rgba(4,7,7,0.42), rgba(2,3,3,0.80));
   z-index: 60;
@@ -508,14 +521,25 @@ html, body {
   font-weight: 400;
   line-height: 0.86;
   letter-spacing: 0.06em;
-  color: var(--paper);
-  text-shadow: 0 0 40px rgba(94, 130, 104, 0.18), 0 8px 40px rgba(0,0,0,0.9);
+  color: #f4e7c6;
+  -webkit-text-stroke: 2.5px #090b09;
+  text-shadow: 6px 6px 0 #8f2a1c, 0 0 50px rgba(255, 170, 70, 0.22);
+  transform: rotate(-1deg);
 }
 .title-tag {
   margin: 24px 0 0;
   color: var(--dim);
   font-size: clamp(13px, 1.6vw, 18px);
   letter-spacing: 0.08em;
+}
+.title-tag::after {
+  content: "";
+  display: block;
+  width: 120px;
+  height: 8px;
+  margin: 18px auto 0;
+  background: repeating-linear-gradient(45deg, #f2a13a 0 10px, #111512 10px 20px);
+  opacity: 0.85;
 }
 .title-warning {
   margin: 30px auto 0;

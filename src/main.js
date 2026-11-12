@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { AudioEngine } from "./audio.js?v=8";
-import { UI } from "./ui.js?v=8";
+import { AudioEngine } from "./audio.js?v=9";
+import { UI } from "./ui.js?v=9";
 import {
   buildDiningRoom,
   buildCrawlspace,
@@ -10,7 +10,8 @@ import {
   makeShotgun,
   makeRifle,
   makeCrawler,
-} from "./world.js?v=8";
+  toonMat,
+} from "./world.js?v=9";
 import {
   buildDeadRail,
   buildZarya,
@@ -26,10 +27,12 @@ import {
   buildWarrenMaze,
   buildFloodedMaze,
   buildLairMaze,
-} from "./levels.js?v=8";
+} from "./levels.js?v=9";
 
 const canvas = document.getElementById("c");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.55;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -49,20 +52,20 @@ scene.add(ambient);
 const flashTarget = new THREE.Object3D();
 flashTarget.position.set(0, 0, -1);
 camera.add(flashTarget);
-const flashlight = new THREE.SpotLight(0xcfe2d3, 0, 24, Math.PI * 0.29, 0.7, 0.45);
+const flashlight = new THREE.SpotLight(0xffd9a6, 0, 26, Math.PI * 0.33, 0.5, 0.35);
 flashlight.position.set(0.08, -0.05, 0);
 flashlight.target = flashTarget;
 camera.add(flashlight);
 flashTarget.position.set(0, -0.35, -1);
 
-const headlamp = new THREE.PointLight(0xb6cab9, 0, 9, 1.45);
+const headlamp = new THREE.PointLight(0xffd9a6, 0, 7, 1.5);
 headlamp.position.set(0.08, 0.02, 0);
 camera.add(headlamp);
 
 const weapon = new THREE.Group();
-weapon.position.set(0.25, -0.24, -0.62);
-weapon.rotation.set(0.02, -0.06, -0.02);
-weapon.scale.setScalar(0.78);
+weapon.position.set(0.34, -0.38, -0.82);
+weapon.rotation.set(0.02, -0.22, -0.02);
+weapon.scale.setScalar(0.45);
 const weaponModels = {
   pistol: makePistol(),
   shotgun: makeShotgun(),
@@ -75,7 +78,7 @@ for (const model of Object.values(weaponModels)) {
 weaponModels.pistol.visible = true;
 const glove = new THREE.Mesh(
   new THREE.BoxGeometry(0.16, 0.14, 0.24),
-  new THREE.MeshLambertMaterial({ color: 0x202723, flatShading: true })
+  toonMat(0x202723)
 );
 glove.position.set(-0.04, -0.11, 0.13);
 glove.rotation.x = -0.18;
@@ -664,7 +667,7 @@ function startVent(retry = false) {
   player.mags.pistol = 8;
   setWeaponModel("pistol");
   player.flashlightOn = true;
-  flashlight.intensity = 24.0;
+  flashlight.intensity = 32.0;
   headlamp.intensity = 1.2;
   weapon.visible = true;
   camera.position.set(player.pos.x, player.height, player.pos.z);
@@ -744,7 +747,7 @@ function updatePlayer(dt) {
   const bob = moving ? Math.sin(player.bobTime) * (crawl ? 0.007 : 0.013) : 0;
   camera.position.set(player.pos.x, player.height + bob, player.pos.z);
   camera.rotation.set(player.pitch, player.yaw, 0, "YXZ");
-  flashlight.intensity = player.flashlightOn ? 24.0 : 0;
+  flashlight.intensity = player.flashlightOn ? 32.0 : 0;
 }
 
 function resolveCollisions() {
@@ -1264,7 +1267,7 @@ function startLevel(id, retry = false) {
   player.ammo = player.mags[player.weapon] ?? 8;
   player.mags[player.weapon] = player.ammo;
   player.flashlightOn = id !== "nest";
-  flashlight.intensity = player.flashlightOn ? 24.0 : 0;
+  flashlight.intensity = player.flashlightOn ? 32.0 : 0;
   headlamp.intensity = id === "dead_rail" ? 1.6 : id === "nest" ? 0.9 : 1.2;
   weapon.visible = id !== "nest";
   setWeaponModel(player.weapon);
@@ -1396,9 +1399,11 @@ function startVision(id, trigger) {
   scene.background.setHex(visionScene.background);
   setFog(visionScene.fog.color, visionScene.fog.density);
   ambient.color.setHex(visionScene.ambient.color);
-  ambient.intensity = visionScene.ambient.intensity;
+  ambient.intensity = Math.max(visionScene.ambient.intensity * 2.4, 1.8);
   flashlight.intensity = 0;
-  headlamp.intensity = 0;
+  headlamp.intensity = 14;
+  headlamp.distance = 26;
+  headlamp.decay = 1.0;
   weapon.visible = false;
 
   const c0 = visionScene.cameraAt(0);
@@ -1454,8 +1459,10 @@ function finishVision() {
   player.frozen = false;
   camera.position.set(player.pos.x, player.height, player.pos.z);
   applyLook();
-  flashlight.intensity = player.flashlightOn ? 24 : 0;
+  flashlight.intensity = player.flashlightOn ? 32 : 0;
   headlamp.intensity = 1.2;
+  headlamp.distance = 7;
+  headlamp.decay = 1.5;
   weapon.visible = player.hasGun && levelId !== "nest";
   state = "explore";
   ui.crosshair(true);
@@ -1725,6 +1732,18 @@ function fire() {
       if (ref) {
         ref.health -= spec.damage;
         hitSomething = true;
+        const kx = ref.group.position.x - player.pos.x;
+        const kz = ref.group.position.z - player.pos.z;
+        const kd = Math.hypot(kx, kz);
+        if (kd > 0.01) {
+          const kb = spec.pellets > 1 ? 0.28 : 0.16;
+          const nx = ref.group.position.x + (kx / kd) * kb;
+          const nz = ref.group.position.z + (kz / kd) * kb;
+          if (!blockAt(nx, nz, 0.2)) {
+            ref.group.position.x = nx;
+            ref.group.position.z = nz;
+          }
+        }
         if (ref.health <= 0) killEnemy(ref);
       }
     }
@@ -1817,7 +1836,7 @@ function melee() {
 function toggleFlashlight() {
   if (state !== "vent" && state !== "kryl" && state !== "explore") return;
   player.flashlightOn = !player.flashlightOn;
-  flashlight.intensity = player.flashlightOn ? 24.0 : 0;
+  flashlight.intensity = player.flashlightOn ? 32.0 : 0;
   audio.click();
   ui.subtitle(player.flashlightOn ? "Flashlight on." : "Flashlight off.", 1200);
 }
@@ -1924,13 +1943,17 @@ function updateWeapon(dt) {
   weaponKick = Math.max(0, weaponKick - dt * 1.8);
   const canAim = state === "vent" || state === "explore";
   const aiming = player.aiming && canAim && player.hasGun;
-  const targetX = camera.aspect < 1 ? 0.14 : aiming ? 0.06 : 0.25;
-  const targetY = aiming ? -0.17 : -0.24;
+  const moving = !player.frozen && !player.forcedCrawl && ["KeyW", "KeyA", "KeyS", "KeyD"].some((k) => keys.has(k));
+  const sprinting = moving && (keys.has("ShiftLeft") || keys.has("ShiftRight"));
+  const sway = moving ? Math.sin(player.bobTime * 0.5) : 0;
+  const targetX = camera.aspect < 1 ? 0.2 : (aiming ? 0.07 : 0.34) + sway * (aiming ? 0.002 : 0.008);
+  const targetY = (aiming ? -0.24 : -0.38) + Math.cos(player.bobTime * 0.5) * (moving ? 0.004 : 0);
   weapon.position.x = lerp(weapon.position.x, targetX, Math.min(1, dt * 12));
   weapon.position.y = lerp(weapon.position.y, targetY, Math.min(1, dt * 12));
-  weapon.position.z = (aiming ? -0.5 : -0.62) + weaponKick;
+  weapon.position.z = (aiming ? -0.7 : -0.82) + weaponKick;
   weapon.rotation.x = 0.02 - weaponKick * 0.45;
-  const targetFov = aiming ? 68 : camera.aspect < 1 ? 95 : 80;
+  weapon.rotation.z = lerp(weapon.rotation.z, sway * (aiming ? 0.004 : 0.015), Math.min(1, dt * 10));
+  const targetFov = aiming ? 68 : sprinting ? 88 : camera.aspect < 1 ? 95 : 80;
   if (Math.abs(camera.fov - targetFov) > 0.05) {
     camera.fov = lerp(camera.fov, targetFov, Math.min(1, dt * 10));
     camera.updateProjectionMatrix();

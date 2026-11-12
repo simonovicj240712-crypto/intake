@@ -1,7 +1,7 @@
 # INTAKE
-### Working design document — v1.7
+### Working design document — v1.8
 
-> **Implementation status:** the first complete playable campaign is in the repo — prologue, Kryl, Dead Rail, Zarya, the deep vents, the Lair, the last crawl, and the Nest ending. It is a condensed pass; the expanded 3–3.5 hour version described below is the target for future updates. The current build also has 3D memory dioramas, branching vent mazes, a title-screen diorama, a minimal vitals/ammo HUD, and skippable memories.
+> **Implementation status:** the first complete playable campaign is in the repo — prologue, Kryl, Dead Rail, Zarya, the deep vents, the Lair, the last crawl, and the Nest ending. It is a condensed pass; the expanded 3–3.5 hour version described below is the target for future updates. The current build also has 3D memory dioramas, branching vent mazes, a title-screen diorama, a minimal vitals/ammo HUD, and skippable memories. The visual pass is now **cel-shaded comic horror**: toon-banded lighting, black outlines, chunky proportions, and saturated teal/orange/yellow palettes.
 
 > **Logline:** A scavenger descends into the ventilation system of a dead metro station to restore the air and reach Sanctuary, the last safe city. The vents are not empty. Something down here learned to move through them.
 

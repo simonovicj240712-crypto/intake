@@ -16,7 +16,7 @@ const C = {
   paper: 0xd8d2c0,
   wood: 0x3a2618,
   wood2: 0x533522,
-  flesh: 0x9a7b61,
+  flesh: 0x8a5c42,
   cloth: 0x2a3532,
   green: 0x85a66a,
   red: 0x7d1f16,
@@ -26,12 +26,52 @@ const matCache = new Map();
 export function mat(color, opts = {}) {
   const key = color + "|" + JSON.stringify(opts);
   if (matCache.has(key)) return matCache.get(key);
-  const m = new THREE.MeshLambertMaterial({ color, flatShading: true, ...opts });
+  const m = toonMat(color, opts);
   matCache.set(key, m);
   return m;
 }
 export function basic(color, opts = {}) {
   return new THREE.MeshBasicMaterial({ color, ...opts });
+}
+
+let _toonGradient = null;
+export function toonGradient() {
+  if (_toonGradient) return _toonGradient;
+  const data = new Uint8Array([60, 150, 255]);
+  const tex = new THREE.DataTexture(data, 3, 1, THREE.RedFormat);
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.needsUpdate = true;
+  _toonGradient = tex;
+  return tex;
+}
+
+export function toonMat(color, opts = {}) {
+  return new THREE.MeshToonMaterial({
+    color,
+    gradientMap: toonGradient(),
+    ...opts,
+  });
+}
+
+const _outlineMat = new THREE.MeshBasicMaterial({
+  color: 0x070b09,
+  side: THREE.BackSide,
+});
+
+export function outlineGroup(group, thickness = 1.035) {
+  if (!group) return group;
+  const outline = group.clone(true);
+  outline.scale.multiplyScalar(thickness);
+  outline.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.material = _outlineMat;
+      obj.userData.outline = true;
+    }
+  });
+  group.add(outline);
+  return group;
 }
 
 const _surfaceCache = new Map();
@@ -83,8 +123,8 @@ export function surfaceTexture(kind = "metal", opts = {}) {
       ctx.fillStyle = `rgba(${g},${g + 4},${g},${rnd(0.04, 0.16)})`;
       ctx.fillRect(rnd(0, size), rnd(0, size), rnd(1, 3), rnd(1, 3));
     }
-    ctx.strokeStyle = "rgba(54, 60, 54, 0.4)";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(20, 26, 22, 0.62)";
+    ctx.lineWidth = 5;
     for (let i = 0; i <= 2; i++) {
       const p = (i / 2) * size;
       ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(size, p); ctx.stroke();
@@ -118,8 +158,8 @@ export function surfaceTexture(kind = "metal", opts = {}) {
         ctx.fillRect(x * step + 3, y * step + 3, step - 6, step - 6);
       }
     }
-    ctx.strokeStyle = "rgba(44, 52, 46, 0.42)";
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(18, 24, 20, 0.7)";
+    ctx.lineWidth = 6;
     for (let i = 0; i <= 4; i++) {
       const p = i * step;
       ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(size, p); ctx.stroke();
@@ -161,13 +201,15 @@ export function surfaceTexture(kind = "metal", opts = {}) {
       ctx.fillRect(rnd(0, size), rnd(0, size), rnd(1, 3), rnd(1, 3));
     }
     // large panel seams
-    ctx.strokeStyle = "rgba(48, 58, 52, 0.55)";
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = "rgba(16, 24, 20, 0.88)";
+    ctx.lineWidth = 9;
     for (let i = 1; i < 3; i++) {
       const p = (i / 3) * size;
       ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(size, p); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, size); ctx.stroke();
     }
+    ctx.lineWidth = 8;
+    ctx.strokeRect(0, 0, size, size);
     // panel highlights
     ctx.strokeStyle = "rgba(255,255,255,0.13)";
     ctx.lineWidth = 1;
@@ -303,25 +345,50 @@ export function pointLight(color, intensity, distance, x, y, z, parent, opts = {
   return l;
 }
 
-export function makeHumanoid({ skin = C.flesh, coat = C.cloth, pants = 0x1a211f, hair = 0x241a13, child = false, shoes = 0x14100c } = {}) {
+export function makeHumanoid({ skin = C.flesh, coat = C.cloth, pants = 0x1a211f, hair = 0x241a13, child = false, shoes = 0x14100c, outline = true } = {}) {
   const g = new THREE.Group();
   const s = child ? 0.66 : 1;
-  const torsoH = 0.62 * s;
-  const torsoY = 1.02 * s;
-  box(0.38 * s, torsoH, 0.22 * s, coat, 0, torsoY, 0, g);
-  box(0.42 * s, 0.11 * s, 0.24 * s, coat, 0, torsoY - torsoH * 0.47, 0, g);
-  sphere(0.125 * s, 8, 6, skin, 0, 1.43 * s, 0, g, { sy: 1.1 });
-  box(0.22 * s, 0.1 * s, 0.22 * s, hair, 0, 1.52 * s, -0.01 * s, g);
-  // eyes (tiny, blank)
-  sphere(0.018 * s, 6, 4, 0x0a0808, -0.045 * s, 1.44 * s, 0.116 * s, g);
-  sphere(0.018 * s, 6, 4, 0x0a0808, 0.045 * s, 1.44 * s, 0.116 * s, g);
+  const skinMat = mat(skin);
+  const coatMat = mat(coat);
+  const pantsMat = mat(pants);
+  const hairMat = mat(hair);
+  const shoeMat = mat(shoes);
+  // torso and coat
+  box(0.44 * s, 0.6 * s, 0.26 * s, coat, 0, 1.04 * s, 0, g, { material: coatMat });
+  box(0.48 * s, 0.1 * s, 0.28 * s, coat, 0, 0.8 * s, 0, g, { material: coatMat });
+  box(0.46 * s, 0.08 * s, 0.29 * s, 0x171b17, 0, 0.72 * s, 0, g);
+  box(0.1 * s, 0.08 * s, 0.04 * s, 0xc9a04a, 0, 0.72 * s, 0.16 * s, g);
+  box(0.34 * s, 0.36 * s, 0.07 * s, coat, 0, 0.58 * s, -0.15 * s, g, { material: coatMat });
+  box(0.32 * s, 0.12 * s, 0.27 * s, 0x1a2420, 0, 1.28 * s, 0, g);
+  cyl(0.06 * s, 0.07 * s, 0.1 * s, 6, skin, 0, 1.35 * s, 0, g, { material: skinMat });
+  // stylised box head with a flat cartoon face
+  box(0.3 * s, 0.3 * s, 0.24 * s, skin, 0, 1.48 * s, 0.01 * s, g, { material: skinMat });
+  box(0.32 * s, 0.1 * s, 0.27 * s, hair, 0, 1.63 * s, 0, g, { material: hairMat });
+  box(0.32 * s, 0.18 * s, 0.06 * s, hair, 0, 1.54 * s, -0.12 * s, g, { material: hairMat });
+  for (const side of [-1, 1]) {
+    box(0.04 * s, 0.08 * s, 0.05 * s, skin, side * 0.16 * s, 1.48 * s, 0.01 * s, g, { material: skinMat });
+    box(0.075 * s, 0.045 * s, 0.018 * s, 0xe9e1cd, side * 0.068 * s, 1.5 * s, 0.148 * s, g);
+    box(0.025 * s, 0.032 * s, 0.016 * s, 0x101412, side * 0.068 * s, 1.5 * s, 0.16 * s, g);
+    box(0.085 * s, 0.022 * s, 0.018 * s, hair, side * 0.068 * s, 1.555 * s, 0.155 * s, g, { material: hairMat, rotZ: side * 0.1 });
+  }
+  box(0.04 * s, 0.055 * s, 0.055 * s, skin, 0, 1.44 * s, 0.16 * s, g, { material: skinMat });
+  box(0.09 * s, 0.022 * s, 0.018 * s, 0x5c3a32, 0, 1.395 * s, 0.155 * s, g);
   // arms
   for (const side of [-1, 1]) {
-    box(0.11 * s, 0.48 * s, 0.12 * s, coat, side * 0.27 * s, 1.03 * s, 0, g, { rotZ: side * 0.06 });
-    box(0.09 * s, 0.16 * s, 0.1 * s, skin, side * 0.29 * s, 0.76 * s, 0.01 * s, g);
-    box(0.13 * s, 0.48 * s, 0.15 * s, pants, side * 0.12 * s, 0.48 * s, 0, g);
-    box(0.14 * s, 0.09 * s, 0.24 * s, shoes, side * 0.12 * s, 0.18 * s, 0.04 * s, g);
+    const sideX = side * 0.29 * s;
+    sphere(0.085 * s, 7, 5, coat, sideX, 1.25 * s, 0, g, { material: coatMat });
+    cyl(0.06 * s, 0.055 * s, 0.34 * s, 6, coat, sideX, 1.06 * s, 0, g, { material: coatMat, rotZ: side * 0.08 });
+    cyl(0.052 * s, 0.05 * s, 0.3 * s, 6, coat, sideX + side * 0.025 * s, 0.79 * s, 0.01 * s, g, { material: coatMat, rotZ: side * 0.12 });
+    sphere(0.062 * s, 6, 5, skin, sideX + side * 0.04 * s, 0.62 * s, 0.03 * s, g, { material: skinMat });
   }
+  // legs and boots
+  for (const side of [-1, 1]) {
+    const sideX = side * 0.12 * s;
+    cyl(0.075 * s, 0.07 * s, 0.34 * s, 6, pants, sideX, 0.48 * s, 0, g, { material: pantsMat });
+    cyl(0.065 * s, 0.06 * s, 0.3 * s, 6, pants, sideX, 0.24 * s, 0, g, { material: pantsMat });
+    box(0.16 * s, 0.1 * s, 0.28 * s, shoes, sideX, 0.08 * s, 0.05 * s, g, { material: shoeMat });
+  }
+  if (outline) outlineGroup(g);
   return g;
 }
 
@@ -337,6 +404,7 @@ export function makeTenant(height = 2.45) {
     box(0.11, height * 0.46, 0.12, 0x020202, side * 0.1, height * 0.2, 0, g, { material: blackMat });
   }
   // no face, no reflection; intentionally a hole
+  outlineGroup(g);
   return g;
 }
 
@@ -379,6 +447,7 @@ export function makeRat({ scale = 1, brood = false } = {}) {
     }
   }
   g.scale.setScalar(scale);
+  outlineGroup(g, 1.05);
   return g;
 }
 
@@ -432,6 +501,7 @@ export function makeCrawler() {
     box(0.15, 0.15, 0.15, pale, side * 0.24, 0.66, 0.36, g);
   }
   g.rotation.x = -0.08;
+  outlineGroup(g, 1.045);
   return g;
 }
 
@@ -439,21 +509,13 @@ let _gunMetalMat = null;
 let _gunWoodMat = null;
 function gunMetal() {
   if (!_gunMetalMat) {
-    _gunMetalMat = new THREE.MeshLambertMaterial({
-      color: 0x4e5a55,
-      map: surfaceTexture("metal", { repeat: [1, 1] }),
-      flatShading: true,
-    });
+    _gunMetalMat = toonMat(0x3a4a48);
   }
   return _gunMetalMat;
 }
 function gunWood() {
   if (!_gunWoodMat) {
-    _gunWoodMat = new THREE.MeshLambertMaterial({
-      color: 0x6b4426,
-      map: surfaceTexture("wood", { repeat: [1, 1] }),
-      flatShading: true,
-    });
+    _gunWoodMat = toonMat(0x6b4426);
   }
   return _gunWoodMat;
 }
@@ -461,9 +523,11 @@ function gunWood() {
 export function makePistol() {
   const g = new THREE.Group();
   box(0.1, 0.12, 0.28, 0x2b3332, 0, 0, 0, g, { material: gunMetal() });
+  box(0.045, 0.045, 0.26, 0x171d1c, 0, 0.02, -0.3, g, { material: gunMetal() });
+  box(0.02, 0.03, 0.03, 0x101412, 0, 0.085, -0.2, g);
   box(0.06, 0.16, 0.09, 0x1b2221, 0, -0.12, 0.03, g, { rotX: -0.22, material: gunWood() });
-  box(0.035, 0.035, 0.14, 0x171d1c, 0, 0.015, -0.19, g, { material: gunMetal() });
-  box(0.04, 0.04, 0.04, 0x6b5b3e, 0, 0.03, -0.28, g);
+  box(0.02, 0.032, 0.09, 0x2b3332, 0, -0.065, 0.0, g, { material: gunMetal() });
+  box(0.04, 0.04, 0.04, 0x6b5b3e, 0, 0.03, -0.42, g);
   return g;
 }
 
@@ -488,7 +552,7 @@ export function makeRifle() {
 }
 
 export function makeScavenger({ coat = 0x2a2b25, gun = true } = {}) {
-  const g = makeHumanoid({ coat, pants: 0x181d1a, hair: 0x1e1711 });
+  const g = makeHumanoid({ coat, pants: 0x181d1a, hair: 0x1e1711, outline: false });
   // hood and shoulder rags
   box(0.3, 0.16, 0.28, 0x1f2420, 0, 1.58, -0.02, g);
   box(0.36, 0.12, 0.3, 0x232a25, 0.02, 1.5, -0.03, g, { rotZ: 0.04 });
@@ -522,6 +586,7 @@ export function makeScavenger({ coat = 0x2a2b25, gun = true } = {}) {
     rifle.rotation.set(0.12, -0.12, -0.3);
     g.add(rifle);
   }
+  outlineGroup(g, 1.03);
   return g;
 }
 
@@ -557,25 +622,17 @@ export function buildDiningRoom({ flashback = false } = {}) {
   const wall = flashback ? 0x2a3029 : 0x223430;
   const floor = flashback ? 0x2b2118 : 0x342518;
   const refs = {};
-  const floorMat = new THREE.MeshLambertMaterial({
-    color: floor,
+  const floorMat = toonMat(floor, {
     map: surfaceTexture("wood", { repeat: [7, 6] }),
-    flatShading: true,
   });
-  const wallMat = new THREE.MeshLambertMaterial({
-    color: wall,
+  const wallMat = toonMat(wall, {
     map: surfaceTexture("plaster", { repeat: [4, 2] }),
-    flatShading: true,
   });
-  const sideWallMat = new THREE.MeshLambertMaterial({
-    color: 0x1d2b27,
+  const sideWallMat = toonMat(0x1d2b27, {
     map: surfaceTexture("plaster", { repeat: [4, 2] }),
-    flatShading: true,
   });
-  const tableMat = new THREE.MeshLambertMaterial({
-    color: 0x7a5230,
+  const tableMat = toonMat(0x7a5230, {
     map: surfaceTexture("wood", { repeat: [3, 2] }),
-    flatShading: true,
   });
 
   box(8, 0.2, 7, floor, 0, -0.1, 0, group, { material: floorMat });

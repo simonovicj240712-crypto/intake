@@ -6,6 +6,7 @@ import {
   plane,
   mat,
   basic,
+  toonMat,
   surfaceTexture,
   addGlow,
   pointLight,
@@ -14,7 +15,7 @@ import {
   makeTenant,
   makeCrawler,
   makeScavenger,
-} from "./world.js?v=8";
+} from "./world.js?v=9";
 
 function vec(x, y, z) {
   return new THREE.Vector3(x, y, z);
@@ -23,15 +24,11 @@ function vec(x, y, z) {
 function ventShell({ w = 12, d = 14, h = 3.2, floor = 0x242b27, wall = 0x29322d, ceiling = 0x131918 } = {}) {
   const group = new THREE.Group();
   const colliders = [];
-  const floorMat = new THREE.MeshLambertMaterial({
-    color: floor,
+  const floorMat = toonMat(floor, {
     map: surfaceTexture("concrete", { repeat: [4, 4] }),
-    flatShading: true,
   });
-  const wallMat = new THREE.MeshLambertMaterial({
-    color: wall,
+  const wallMat = toonMat(wall, {
     map: surfaceTexture("metal", { repeat: [3, 1] }),
-    flatShading: true,
   });
   box(w, 0.2, d, floor, 0, -0.1, 0, group, { material: floorMat });
   box(w, 0.16, d, ceiling, 0, h, 0, group);
@@ -48,7 +45,7 @@ function ventShell({ w = 12, d = 14, h = 3.2, floor = 0x242b27, wall = 0x29322d,
 
 function pipes(group, zSpan = 10, x = 0, y = 2.8) {
   for (let i = 0; i < 3; i++) {
-    cyl(0.055, 0.055, zSpan, 6, 0x3a4641, x - 0.10 + i * 0.10, y - (i % 2) * 0.12, 0, group, { rotX: Math.PI / 2 });
+    cyl(0.055, 0.055, zSpan, 6, 0x3f7a6c, x - 0.10 + i * 0.10, y - (i % 2) * 0.12, 0, group, { rotX: Math.PI / 2 });
   }
 }
 
@@ -199,20 +196,14 @@ export function buildDeadRail() {
   const group = new THREE.Group();
   const colliders = [];
   const w = 26, d = 22;
-  const groundMat = new THREE.MeshLambertMaterial({
-    color: 0x2a2c27,
+  const groundMat = toonMat(0x2a2c27, {
     map: surfaceTexture("concrete", { repeat: [12, 10] }),
-    flatShading: true,
   });
-  const wallMat = new THREE.MeshLambertMaterial({
-    color: 0x2b332e,
+  const wallMat = toonMat(0x2b332e, {
     map: surfaceTexture("metal", { repeat: [8, 2] }),
-    flatShading: true,
   });
-  const carMat = new THREE.MeshLambertMaterial({
-    color: 0x40504a,
+  const carMat = toonMat(0x40504a, {
     map: surfaceTexture("metal", { repeat: [4, 2] }),
-    flatShading: true,
   });
   box(w, 0.2, d, 0x1b1c19, 0, -0.1, 0, group, { material: groundMat });
   // ruined perimeter
@@ -272,17 +263,40 @@ export function buildDeadRail() {
   }
   const moon = new THREE.Mesh(
     new THREE.CircleGeometry(2.3, 22),
-    new THREE.MeshBasicMaterial({ color: 0xb9c7b6, transparent: true, opacity: 0.7, fog: false })
+    new THREE.MeshBasicMaterial({ color: 0xffe6b0, transparent: true, opacity: 0.85, fog: false })
   );
   moon.position.set(13, 15, -34);
   moon.lookAt(0, 1.6, 9);
   group.add(moon);
+  addGlow(group, 0xffe6b0, 13, 15, -34, 8, 0.13);
+  // stars above the yard
+  const starData = new Float32Array(180 * 3);
+  for (let i = 0; i < 180; i++) {
+    starData[i * 3] = (Math.random() - 0.5) * 110;
+    starData[i * 3 + 1] = 12 + Math.random() * 34;
+    starData[i * 3 + 2] = -70 + Math.random() * 110;
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute("position", new THREE.BufferAttribute(starData, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0xbcd8ff,
+    size: 0.16,
+    transparent: true,
+    opacity: 0.8,
+    fog: false,
+    depthWrite: false,
+  }));
+  group.add(stars);
   // broken overhead cables
   for (let i = 0; i < 4; i++) {
     const x = -10 + i * 6.5;
     cyl(0.012, 0.012, 10, 4, 0x1a211e, x, 5.1, 2, group, { rotX: 0.2, rotZ: 0.05 });
   }
   emergencyLamps(group, 3, 6, 4, -11, 0x7fa36a, 0.7);
+  // burning barrel near the spawn
+  addBarrel(group, colliders, -7.6, 6.4);
+  pointLight(0xff7a2a, 4.5, 9, -7.6, 1.1, 6.4, group, { decay: 1.35 });
+  addGlow(group, 0xff7a2a, -7.6, 1.0, 6.4, 1.5, 0.36);
 
   const enemies = [
     scavengerEnemy(group, -5, 3, 0.6),
@@ -321,9 +335,9 @@ export function buildDeadRail() {
     enemies,
     interactables,
     triggers: [{ kind: "vision", pos: vec(0, 0, 0), radius: 3.5, visionId: 2, once: true }],
-    fog: { color: 0x0a1513, density: 0.028 },
-    ambient: { color: 0x5a6e64, intensity: 0.68 },
-    background: 0x050a09,
+    fog: { color: 0x14243c, density: 0.018 },
+    ambient: { color: 0x5e7a90, intensity: 0.95 },
+    background: 0x0c1830,
   };
 }
 
@@ -331,20 +345,14 @@ export function buildZarya() {
   const group = new THREE.Group();
   const colliders = [];
   const w = 14, d = 13;
-  const floorMat = new THREE.MeshLambertMaterial({
-    color: 0x6a4a30,
+  const floorMat = toonMat(0x6a4a30, {
     map: surfaceTexture("wood", { repeat: [6, 6] }),
-    flatShading: true,
   });
-  const wallMat = new THREE.MeshLambertMaterial({
-    color: 0x44564e,
+  const wallMat = toonMat(0x44564e, {
     map: surfaceTexture("tile", { repeat: [6, 3] }),
-    flatShading: true,
   });
-  const counterMat = new THREE.MeshLambertMaterial({
-    color: 0x8a5a34,
+  const counterMat = toonMat(0x8a5a34, {
     map: surfaceTexture("wood", { repeat: [4, 1] }),
-    flatShading: true,
   });
   box(w, 0.2, d, 0x211d18, 0, -0.1, 0, group, { material: floorMat });
   box(w, 4.2, 0.2, 0x1d2a26, 0, 2.1, -d / 2, group, { material: wallMat });
@@ -374,7 +382,10 @@ export function buildZarya() {
   }
   pointLight(0xffb070, 10, 18, 0, 3.4, 0, group, { decay: 1.1 });
   // station name and trader's stall details
-  plane(3.0, 1.0, 0xffffff, 0, 3.05, -6.4, group, { material: signMaterial("ZARYA", "#d8b06a") });
+  plane(3.0, 1.0, 0xffffff, 0, 3.05, -6.4, group, { material: signMaterial("ZARYA", "#ffe08a") });
+  plane(1.15, 0.5, 0xffffff, -4.6, 2.0, -6.38, group, { material: signMaterial("AIR", "#ffd27a") });
+  plane(1.3, 0.5, 0xffffff, 4.5, 2.05, -6.38, group, { material: signMaterial("NO CREDIT", "#ff8a6a") });
+  plane(1.35, 0.5, 0xffffff, 2.7, 1.72, -6.38, group, { material: signMaterial("SANCTUARY", "#8fe0c0") });
   for (const side of [-1, 1]) {
     cyl(0.045, 0.045, 12.2, 6, 0x3d4a43, side * 6.7, 2.55, 0, group, { rotX: Math.PI / 2 });
     cyl(0.03, 0.03, 12.0, 5, 0x2b3631, side * 6.6, 0.55, 0, group, { rotX: Math.PI / 2 });
@@ -400,10 +411,13 @@ export function buildZarya() {
     group.add(h);
   }
   // hanging tarps
-  const tarp = new THREE.MeshLambertMaterial({ color: 0x4a3f30, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
-  for (const [x, z] of [[-6.3, 0.4], [6.2, 2.2]]) {
-    plane(2.2, 1.5, 0xffffff, x, 2.5, z, group, { rotY: x < 0 ? Math.PI / 2 : -Math.PI / 2, material: tarp });
-  }
+  const tarp = new THREE.MeshLambertMaterial({ color: 0x2f6f66, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+  const tarp2 = new THREE.MeshLambertMaterial({ color: 0x9a3a24, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+  plane(2.2, 1.5, 0xffffff, -6.3, 2.5, 0.4, group, { rotY: Math.PI / 2, material: tarp });
+  plane(2.2, 1.5, 0xffffff, 6.2, 2.5, 2.2, group, { rotY: -Math.PI / 2, material: tarp2 });
+  // rugs
+  plane(3.4, 2.2, 0xffffff, -3.8, 0.015, 0.6, group, { rotX: -Math.PI / 2, material: toonMat(0x7d2f26) });
+  plane(2.6, 1.8, 0xffffff, 3.4, 0.016, 3.0, group, { rotX: -Math.PI / 2, material: toonMat(0x2f5f58) });
   // side vent grates
   for (const side of [-1, 1]) {
     for (let k = 0; k < 2; k++) {
@@ -422,7 +436,7 @@ export function buildZarya() {
   box(0.17, 0.045, 0.035, 0x1b1c18, 0, 1.44, 0.11, vera);
   box(0.05, 0.05, 0.02, 0x8caa76, -0.05, 1.44, 0.13, vera, { material: basic(0x8caa76) });
   box(0.05, 0.05, 0.02, 0x8caa76, 0.05, 1.44, 0.13, vera, { material: basic(0x8caa76) });
-  pointLight(0xffc078, 4.5, 5, 0, 1.8, 2.0, group, { decay: 1.3 });
+  pointLight(0xffc078, 3.2, 6, 0, 2.15, 3.0, group, { decay: 1.35 });
 
   // exit vent
   const exit = door(group, 0, -5.7, "VENT");
@@ -446,7 +460,7 @@ export function buildZarya() {
       { kind: "vision", pos: vec(0, 0, -3.4), radius: 2.4, visionId: 3, once: true },
     ],
     fog: { color: 0x090b08, density: 0.028 },
-    ambient: { color: 0xb08a60, intensity: 1.0 },
+    ambient: { color: 0x8a6a4a, intensity: 0.72 },
     background: 0x050605,
   };
 }
@@ -630,7 +644,7 @@ export function buildSafeRoom() {
       { kind: "vision", pos: vec(0, 0, 0.4), radius: 1.8, visionId: 6, once: true },
     ],
     fog: { color: 0x0b0a07, density: 0.035 },
-    ambient: { color: 0xb08a60, intensity: 0.9 },
+    ambient: { color: 0x8a6a4a, intensity: 0.7 },
     background: 0x050403,
     name: "safe_room",
   };
@@ -1008,7 +1022,7 @@ export function buildTitleScene() {
       box(0.12, 3.0, 0.16, mixColor(wallColor, 0xa4b3a6, 0.12), side * 3.1, 1.5, z, group);
     }
     for (let i = 0; i < 3; i++) {
-      cyl(0.05, 0.05, 42, 6, 0x4a5650, side * (3.13 + i * 0.02), 2.72 - i * 0.09, 0, group, { rotX: Math.PI / 2 });
+      cyl(0.05, 0.05, 42, 6, 0x3f7a6c, side * (3.13 + i * 0.02), 2.72 - i * 0.09, 0, group, { rotX: Math.PI / 2 });
     }
     // recessed service doors
     for (const z of [-9, 4, 14]) {
@@ -1091,28 +1105,22 @@ export function buildTitleScene() {
   };
 }
 
-function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b27, height = 2.9, water = false, lightColor = 0x7fa36a } = {}) {
+function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b27, height = 2.9, water = false, lightColor = 0x7fa36a, accentColor = null } = {}) {
   const group = new THREE.Group();
   const colliders = [];
   const size = n * cell;
   const half = size / 2;
-  const trimColor = mixColor(wallColor, 0x111815, 0.34);
-  const ribColor = mixColor(wallColor, 0xa4b3a6, 0.14);
+  const trimColor = mixColor(wallColor, 0x050807, 0.65);
+  const ribColor = mixColor(wallColor, 0x0d1a16, 0.32);
   const beamColor = mixColor(wallColor, 0x0b100e, 0.42);
-  const wallMat = new THREE.MeshLambertMaterial({
-    color: wallColor,
+  const wallMat = toonMat(wallColor, {
     map: surfaceTexture("metal", { repeat: [2, 1] }),
-    flatShading: true,
   });
-  const floorMat = new THREE.MeshLambertMaterial({
-    color: floorColor,
+  const floorMat = toonMat(floorColor, {
     map: surfaceTexture("concrete", { repeat: [6, 6] }),
-    flatShading: true,
   });
-  const ceilMat = new THREE.MeshLambertMaterial({
-    color: 0x111716,
+  const ceilMat = toonMat(0x111716, {
     map: surfaceTexture("metal", { repeat: [6, 6] }),
-    flatShading: true,
   });
   box(size, 0.2, size, floorColor, 0, -0.1, 0, group, { material: floorMat });
   box(size, 0.16, size, 0x111716, 0, height, 0, group, { material: ceilMat });
@@ -1131,6 +1139,16 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
       box(0.12, height - 0.2, 0.1, ribColor, p, height / 2, side * (half - 0.16), group);
     }
   }
+  // painted hazard bands on the perimeter walls
+  for (const side of [-1, 1]) {
+    box(0.05, 0.14, size, 0xf2a13a, side * (half - 0.17), 1.2, 0, group);
+    box(size, 0.14, 0.05, 0xf2a13a, 0, 1.2, side * (half - 0.17), group);
+  }
+  // big ventilation fans on the outer walls
+  addWallFan(group, -half + 0.2, 1.9, -size * 0.23, Math.PI / 2);
+  addWallFan(group, half - 0.2, 1.9, size * 0.23, -Math.PI / 2);
+  addWallFan(group, -size * 0.23, 1.9, half - 0.2, Math.PI);
+  addWallFan(group, size * 0.23, 1.9, -half + 0.2, 0);
 
   const visited = new Set();
   const open = new Set();
@@ -1171,6 +1189,28 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
   const entranceYaw = entrance[0] === 1 ? -Math.PI / 2 : Math.PI;
   const center = (i, j) => new THREE.Vector3(-half + (i + 0.5) * cell, 0, -half + (j + 0.5) * cell);
 
+  // painted floor guide down the entrance run
+  for (let k = 0; k < 3; k++) {
+    const c = center(entrance[0] * k, entrance[1] * k);
+    box(entrance[0] ? cell * 0.7 : 0.06, 0.012, entrance[1] ? cell * 0.7 : 0.06, 0xd6a14a, c.x, 0.006, c.z, group);
+  }
+  // hanging entrance sign
+  const startC = center(0, 0);
+  const signX = startC.x + entrance[0] * 2.05;
+  const signZ = startC.z + entrance[1] * 2.05;
+  const signYaw = entrance[0] === 1 ? -Math.PI / 2 : entrance[1] === 1 ? Math.PI : 0;
+  plane(0.8, 0.32, 0xffffff, signX, height - 0.72, signZ, group, {
+    rotY: signYaw,
+    material: signMaterial("VENT 04", "#ffe08a"),
+  });
+  const sideX = entrance[1] === 0 ? 0.34 : 0;
+  const sideZ = entrance[0] === 0 ? 0.34 : 0;
+  for (const k of [-1, 1]) {
+    cyl(0.012, 0.012, 0.55, 4, 0x151a17,
+      signX + sideX * k, height - 0.34, signZ + sideZ * k, group);
+  }
+  addGlow(group, 0xffd27a, signX, height - 0.72, signZ, 0.7, 0.16);
+
   // internal walls with ribs, base trim, and occasional wall pipes
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
@@ -1187,10 +1227,16 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
           }
           box(0.07, 0.06, cell, trimColor, x, 1.06, c.z, group);
           box(0.07, 0.06, cell, trimColor, x, 1.72, c.z, group);
+          if (Math.random() < 0.72) {
+            box(0.075, 0.16, cell, 0xf2a13a, x, 1.2, c.z, group);
+          }
+          if (Math.random() < 0.28) {
+            box(0.075, 0.09, cell, 0x55c9c0, x, 0.44, c.z, group);
+          }
           box(0.08, 0.1, cell, trimColor, x, 0.05, c.z, group);
           box(0.3, 0.1, cell, beamColor, x, height - 0.16, c.z, group);
           if (Math.random() < 0.34) {
-            cyl(0.035, 0.035, cell, 6, 0x4a5650, x + 0.12, 0.56, c.z, group, { rotX: Math.PI / 2 });
+            cyl(0.035, 0.035, cell, 6, Math.random() < 0.35 ? 0xd9782f : 0x3f7a6c, x + 0.12, 0.56, c.z, group, { rotX: Math.PI / 2 });
           }
           if (Math.random() < 0.2) {
             box(0.13, 0.36, 0.24, 0x252e2a, x + 0.13, 1.45, c.z + cell * 0.22, group);
@@ -1209,10 +1255,16 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
           }
           box(cell, 0.06, 0.07, trimColor, c.x, 1.06, z, group);
           box(cell, 0.06, 0.07, trimColor, c.x, 1.72, z, group);
+          if (Math.random() < 0.72) {
+            box(cell, 0.16, 0.075, 0xf2a13a, c.x, 1.2, z, group);
+          }
+          if (Math.random() < 0.28) {
+            box(cell, 0.09, 0.075, 0x55c9c0, c.x, 0.44, z, group);
+          }
           box(cell, 0.1, 0.08, trimColor, c.x, 0.05, z, group);
           box(cell, 0.1, 0.3, beamColor, c.x, height - 0.16, z, group);
           if (Math.random() < 0.34) {
-            cyl(0.035, 0.035, cell, 6, 0x4a5650, c.x, 0.56, z + 0.12, group, { rotZ: Math.PI / 2 });
+            cyl(0.035, 0.035, cell, 6, Math.random() < 0.35 ? 0xd9782f : 0x3f7a6c, c.x, 0.56, z + 0.12, group, { rotZ: Math.PI / 2 });
           }
           if (Math.random() < 0.2) {
             box(0.24, 0.36, 0.13, 0x252e2a, c.x + cell * 0.22, 1.45, z + 0.13, group);
@@ -1272,6 +1324,20 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
   }
   path.reverse();
 
+  // overhead duct runs deeper along the route
+  for (let k = 3; k < Math.min(path.length - 1, 7); k += 2) {
+    const a = path[k];
+    const b = path[k + 1];
+    const alongX = Math.abs(b.x - a.x) > Math.abs(b.z - a.z);
+    const len = cell * 0.8;
+    box(alongX ? len : 0.62, 0.3, alongX ? 0.62 : len, 0x2f7a70, a.x, height - 0.38, a.z, group);
+    box(alongX ? 0.08 : 0.72, 0.36, alongX ? 0.72 : 0.08, 0x1a2420,
+      a.x - (alongX ? len / 2 : 0), height - 0.38, a.z - (alongX ? 0 : len / 2), group);
+    box(alongX ? 0.08 : 0.72, 0.36, alongX ? 0.72 : 0.08, 0x1a2420,
+      a.x + (alongX ? len / 2 : 0), height - 0.38, a.z + (alongX ? 0 : len / 2), group);
+    box(alongX ? 0.1 : 0.66, 0.07, alongX ? 0.66 : 0.1, 0xc05a26, a.x, height - 0.38, a.z, group);
+  }
+
   // face down the guaranteed entrance corridor
   const startYaw = entranceYaw;
 
@@ -1280,14 +1346,18 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
   for (let i = 0; i < n; i += 2) {
     for (let j = 0; j < n; j += 2) {
       const c = center(i, j);
-      box(0.5, 0.04, 0.22, 0x1b221f, c.x, height - 0.3, c.z, group);
-      box(0.44, 0.045, 0.16, 0x0b0f0d, c.x, height - 0.27, c.z, group);
-      box(0.36, 0.035, 0.1, lightColor, c.x, height - 0.25, c.z, group, { material: basic(lightColor) });
-      addGlow(group, lightColor, c.x, height - 0.25, c.z, 0.9, 0.3);
+      const fixtureColor = accentColor && (i + j) % 6 === 0 ? accentColor : lightColor;
+      for (const sx of [-0.18, 0.18]) {
+        box(0.025, 0.44, 0.025, 0x2a3530, c.x + sx, height - 0.2, c.z, group);
+      }
+      box(0.58, 0.05, 0.3, 0x1b221f, c.x, height - 0.44, c.z, group);
+      box(0.5, 0.04, 0.22, 0x0b0f0d, c.x, height - 0.47, c.z, group);
+      box(0.4, 0.05, 0.11, fixtureColor, c.x, height - 0.49, c.z, group, { material: basic(fixtureColor) });
+      addGlow(group, fixtureColor, c.x, height - 0.49, c.z, 1.05, 0.34);
       if ((i + j) % 4 === 0) {
-        const light = pointLight(lightColor, 2.4, 7.4, c.x, height - 0.48, c.z, group, { decay: 1.5 });
+        const light = pointLight(fixtureColor, 3.2, 8.2, c.x, height - 0.68, c.z, group, { decay: 1.45 });
         if (Math.random() < 0.32) {
-          flickerLights.push({ light, base: 2.4, phase: Math.random() * 20, speed: 5 + Math.random() * 7 });
+          flickerLights.push({ light, base: 3.2, phase: Math.random() * 20, speed: 5 + Math.random() * 7 });
         }
       }
     }
@@ -1299,7 +1369,7 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
   addGlow(group, 0xb33a24, center(n - 1, n - 1).x, 1.9, center(n - 1, n - 1).z, 1.3, 0.26);
 
   // floor grates and drains
-  const grateMat = new THREE.MeshLambertMaterial({ map: grateTexture(), color: 0xffffff });
+  const grateMat = toonMat(0xffffff, { map: grateTexture() });
   for (let k = 0; k < Math.floor(n * 1.4); k++) {
     const iCell = Math.floor(Math.random() * n);
     const jCell = Math.floor(Math.random() * n);
@@ -1307,7 +1377,7 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
     plane(1.15, 0.85, 0xffffff, c.x + (Math.random() - 0.5) * 0.5, 0.012, c.z + (Math.random() - 0.5) * 0.5,
       group, { rotX: -Math.PI / 2, material: grateMat });
   }
-  const drainMat = new THREE.MeshLambertMaterial({ color: 0x111614 });
+  const drainMat = toonMat(0x111614);
   for (let k = 0; k < 4; k++) {
     const c = center(Math.floor(Math.random() * n), Math.floor(Math.random() * n));
     cyl(0.2, 0.2, 0.03, 10, 0x0b1210, c.x + (Math.random() - 0.5) * 1.2, 0.01, c.z + (Math.random() - 0.5) * 1.2, group, { material: drainMat });
@@ -1319,7 +1389,7 @@ function makeMaze({ n = 8, cell = 2.9, wallColor = 0x29322d, floorColor = 0x242b
     const jCell = Math.floor(Math.random() * n);
     const c = center(iCell, jCell);
     const rot = Math.random() < 0.5;
-    cyl(0.055, 0.055, cell * 0.9, 6, 0x46524b,
+    cyl(0.055, 0.055, cell * 0.9, 6, Math.random() < 0.3 ? 0xd9782f : 0x3f7a6c,
       c.x + (rot ? 0 : (Math.random() - 0.5) * 1.3),
       height - 0.42,
       c.z + (rot ? (Math.random() - 0.5) * 1.3 : 0),
@@ -1484,36 +1554,62 @@ function hazardMaterial(color = "#b98b2f") {
 
 let _crateMat = null;
 let _barrelMat = null;
+let _orangeBarrelMat = null;
+let _metalCrateMat = null;
+let _orangeCrateMat = null;
 function crateMaterial() {
   if (!_crateMat) {
-    _crateMat = new THREE.MeshLambertMaterial({
-      color: 0x8a6339,
+    _crateMat = toonMat(0x8a6339, {
       map: surfaceTexture("wood", { repeat: [1, 1] }),
-      flatShading: true,
     });
   }
   return _crateMat;
 }
+function metalCrateMaterial() {
+  if (!_metalCrateMat) {
+    _metalCrateMat = toonMat(0x2f7a70, {
+      map: surfaceTexture("metal", { repeat: [1, 1] }),
+    });
+  }
+  return _metalCrateMat;
+}
+function orangeCrateMaterial() {
+  if (!_orangeCrateMat) {
+    _orangeCrateMat = toonMat(0xb85a28, {
+      map: surfaceTexture("metal", { repeat: [1, 1] }),
+    });
+  }
+  return _orangeCrateMat;
+}
 function barrelMaterial() {
   if (!_barrelMat) {
-    _barrelMat = new THREE.MeshLambertMaterial({
-      color: 0x6a4a2a,
+    _barrelMat = toonMat(0x6a4a2a, {
       map: surfaceTexture("metal", { repeat: [1, 1] }),
-      flatShading: true,
     });
   }
   return _barrelMat;
 }
+function orangeBarrelMaterial() {
+  if (!_orangeBarrelMat) {
+    _orangeBarrelMat = toonMat(0xc05a26, {
+      map: surfaceTexture("metal", { repeat: [1, 1] }),
+    });
+  }
+  return _orangeBarrelMat;
+}
 
 function addCrate(group, colliders, x, z, s = 0.65) {
-  box(s, s, s, 0x4a3a28, x, s / 2, z, group, { rotY: Math.random() * 0.5, material: crateMaterial() });
-  box(s * 0.86, s * 0.08, s * 1.02, 0x2f251a, x, s * 0.75, z, group, { rotY: Math.random() * 0.1 });
-  box(s * 0.86, s * 0.1, s * 0.08, 0x2f251a, x, s * 0.5, z + s / 2, group);
+  const roll = Math.random();
+  const cm = roll < 0.45 ? crateMaterial() : roll < 0.75 ? metalCrateMaterial() : orangeCrateMaterial();
+  box(s, s, s, 0x4a3a28, x, s / 2, z, group, { rotY: Math.random() * 0.5, material: cm });
+  box(s * 0.86, s * 0.08, s * 1.02, 0x1a211e, x, s * 0.75, z, group, { rotY: Math.random() * 0.1 });
+  box(s * 0.86, s * 0.1, s * 0.08, 0x1a211e, x, s * 0.5, z + s / 2, group);
   colliders.push({ minX: x - s / 2, maxX: x + s / 2, minZ: z - s / 2, maxZ: z + s / 2 });
 }
 
 function addBarrel(group, colliders, x, z) {
-  cyl(0.3, 0.3, 0.82, 8, 0x5a4328, x, 0.41, z, group, { material: barrelMaterial() });
+  const bm = Math.random() < 0.5 ? orangeBarrelMaterial() : barrelMaterial();
+  cyl(0.3, 0.3, 0.82, 8, 0x5a4328, x, 0.41, z, group, { material: bm });
   cyl(0.31, 0.31, 0.06, 8, 0x2e2417, x, 0.16, z, group);
   cyl(0.31, 0.31, 0.06, 8, 0x2e2417, x, 0.66, z, group);
   colliders.push({ minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 });
@@ -1535,6 +1631,23 @@ function addMotes(group, area, height, color = 0x9fb3a4, count = 110) {
   return p;
 }
 
+
+function addWallFan(group, x, y, z, rotY = 0) {
+  const g = new THREE.Group();
+  const back = new THREE.Mesh(new THREE.CircleGeometry(0.36, 12), toonMat(0x0c1311));
+  back.position.z = -0.02;
+  g.add(back);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.055, 6, 12), toonMat(0x1a2420));
+  g.add(ring);
+  cyl(0.09, 0.09, 0.08, 8, 0x2a3530, 0, 0, 0.06, g, { rotX: Math.PI / 2 });
+  for (let i = 0; i < 4; i++) {
+    const a = (Math.PI / 2) * i + 0.4;
+    box(0.32, 0.1, 0.035, 0xd9782f, Math.cos(a) * 0.16, Math.sin(a) * 0.16, 0.04, g, { rotZ: a });
+  }
+  g.position.set(x, y, z);
+  g.rotation.y = rotY;
+  group.add(g);
+}
 
 function mazePickCells(maze, count, exclude = []) {
   const cells = [];
@@ -1607,7 +1720,7 @@ function decorateMazeStory(maze, labels = []) {
 }
 
 export function buildWarrenMaze() {
-  const maze = makeMaze({ n: 8, cell: 2.9, wallColor: 0x2c352f, floorColor: 0x242b27, lightColor: 0x8fb56a });
+  const maze = makeMaze({ n: 8, cell: 2.9, wallColor: 0x2a4f66, floorColor: 0x16262e, lightColor: 0xffb35a, accentColor: 0x55c9c0 });
   const { group, colliders } = maze;
   const path = maze.path.length ? maze.path : [maze.start, maze.end];
   const visionCell = path[Math.min(path.length - 2, Math.floor(path.length * 0.52))];
@@ -1626,6 +1739,8 @@ export function buildWarrenMaze() {
   const noteObj = note(group, noteCell.x, noteCell.z, "LOG 09: The vents go deeper than the station ever did.");
   const med = pickup(group, medCell.x, medCell.z, "medkit");
   const enemies = cellPick.filter((c) => c.distanceTo(maze.start) > 4.2).slice(0, 5).map((c) => ratEnemy(group, c.x, c.z));
+  const scavCell = maze.center(maze.n - 2, maze.n - 2);
+  enemies.push(scavengerEnemy(group, scavCell.x + 0.45, scavCell.z + 0.45, Math.PI));
   const crawler = crawlerAt(group, crawlerCell.x, crawlerCell.z, Math.random() * Math.PI * 2);
   const sighting = makeTenant(2.45);
   sighting.position.set(sightingCell.x, 0, sightingCell.z);
@@ -1652,15 +1767,15 @@ export function buildWarrenMaze() {
       { kind: "crawler", pos: crawlerCell.clone(), radius: 1.9, crawler, once: true },
       { kind: "vision", pos: visionCell.clone(), radius: 2.0, visionId: 4, once: true },
     ],
-    fog: { color: 0x07130e, density: 0.045 },
-    ambient: { color: 0x60766a, intensity: 0.72 },
-    background: 0x020404,
+    fog: { color: 0x0a1a2a, density: 0.03 },
+    ambient: { color: 0x4a6a80, intensity: 0.88 },
+    background: 0x0a1726,
     name: "warren",
   };
 }
 
 export function buildFloodedMaze() {
-  const maze = makeMaze({ n: 8, cell: 2.9, wallColor: 0x2b3a34, floorColor: 0x1e2824, lightColor: 0x7fc4a2, water: true });
+  const maze = makeMaze({ n: 8, cell: 2.9, wallColor: 0x24505a, floorColor: 0x122a30, lightColor: 0x66d6c4, water: true, accentColor: 0xffb35a });
   const { group, colliders } = maze;
   const path = maze.path.length ? maze.path : [maze.start, maze.end];
   const visionCell = path[Math.min(path.length - 2, Math.floor(path.length * 0.54))];
@@ -1679,6 +1794,8 @@ export function buildFloodedMaze() {
   const noteObj = note(group, noteCell.x, noteCell.z, "LOG 10: The water came up in the dark. Something came with it.");
   const med = pickup(group, medCell.x, medCell.z, "medkit");
   const enemies = cellPick.filter((c) => c.distanceTo(maze.start) > 4.2).slice(0, 5).map((c) => ratEnemy(group, c.x, c.z));
+  const scavCell = maze.center(maze.n - 2, maze.n - 2);
+  enemies.push(scavengerEnemy(group, scavCell.x + 0.45, scavCell.z + 0.45, Math.PI));
   const crawler = crawlerAt(group, crawlerCell.x, crawlerCell.z, Math.random() * Math.PI * 2);
   const sighting = makeTenant(2.45);
   sighting.position.set(sightingCell.x, 0, sightingCell.z);
@@ -1705,15 +1822,15 @@ export function buildFloodedMaze() {
       { kind: "crawler", pos: crawlerCell.clone(), radius: 1.9, crawler, once: true },
       { kind: "vision", pos: visionCell.clone(), radius: 2.0, visionId: 5, once: true },
     ],
-    fog: { color: 0x06120e, density: 0.05 },
-    ambient: { color: 0x526e64, intensity: 0.76 },
-    background: 0x020404,
+    fog: { color: 0x0a2230, density: 0.036 },
+    ambient: { color: 0x4a7a88, intensity: 0.9 },
+    background: 0x081a24,
     name: "flooded",
   };
 }
 
 export function buildLairMaze() {
-  const maze = makeMaze({ n: 7, cell: 3.1, wallColor: 0x3a2b22, floorColor: 0x2a211b, lightColor: 0xc58a58 });
+  const maze = makeMaze({ n: 7, cell: 3.1, wallColor: 0x5a3428, floorColor: 0x2a1814, lightColor: 0xffa04a, accentColor: 0xffd166 });
   const { group, colliders } = maze;
   const path = maze.path.length ? maze.path : [maze.start, maze.end];
   const visionCell = path[Math.min(path.length - 2, Math.floor(path.length * 0.5))];
@@ -1741,6 +1858,8 @@ export function buildLairMaze() {
     watchers.push(t);
   }
   const enemies = cellPick.filter((c) => c.distanceTo(maze.start) > 4.2).slice(0, 5).map((c) => ratEnemy(group, c.x, c.z));
+  const scavCell = maze.center(maze.n - 2, maze.n - 2);
+  enemies.push(scavengerEnemy(group, scavCell.x + 0.45, scavCell.z + 0.45, Math.PI));
   const crawler = crawlerAt(group, crawlerCell.x, crawlerCell.z, Math.random() * Math.PI * 2);
   const sighting = makeTenant(2.45);
   sighting.position.set(sightingCell.x, 0, sightingCell.z);
@@ -1767,9 +1886,9 @@ export function buildLairMaze() {
       { kind: "crawler", pos: crawlerCell.clone(), radius: 1.9, crawler, once: true },
       { kind: "vision", pos: visionCell.clone(), radius: 2.0, visionId: 7, once: true },
     ],
-    fog: { color: 0x0d0705, density: 0.045 },
-    ambient: { color: 0x8a6248, intensity: 0.8 },
-    background: 0x030202,
+    fog: { color: 0x2a1208, density: 0.032 },
+    ambient: { color: 0x8a5a42, intensity: 0.9 },
+    background: 0x200a04,
     name: "lair",
   };
 }
