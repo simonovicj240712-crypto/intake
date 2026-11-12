@@ -674,6 +674,9 @@ function beginJumpscare() {
   c.lookAt(camera.position.x, 0.8, camera.position.z);
   ui.jumpscare(true);
   ui.jumpscareProgress(1);
+  ui.hideChapter();
+  ui.prompt(null);
+  ui.crosshair(false);
   audio.scream();
   addShake(0.07, 0.6);
   jumpscare = { t: 0, duration: 1.8, resolved: false };
@@ -700,6 +703,7 @@ function resolveJumpscare(success) {
     state = "vent";
     player.frozen = false;
     vent.crawlerKilled = true;
+    ui.crosshair(true);
     if (world?.refs?.crawler) {
       world.refs.crawler.rotation.z = Math.PI / 2;
       world.refs.crawler.position.y = 0.14;
@@ -711,6 +715,7 @@ function resolveJumpscare(success) {
   } else {
     state = "dead";
     player.frozen = true;
+    ui.crosshair(false);
     ui.death(true);
     audio.heartbeat(0.1);
   }
