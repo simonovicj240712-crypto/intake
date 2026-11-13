@@ -1172,19 +1172,54 @@ export function buildPrologueBunker() {
   group.add(tokar);
   refs.tokar = tokar;
 
-  // reinforced window to the old city
+  // boarded-up opening to the old city — light and shapes only through the gaps
   box(3.7, 0.12, 0.14, 0x111614, 1.4, 2.84, -3.88, group);
   box(3.7, 0.12, 0.14, 0x111614, 1.4, 0.86, -3.88, group);
   box(0.12, 2.1, 0.14, 0x111614, -0.34, 1.85, -3.88, group);
   box(0.12, 2.1, 0.14, 0x111614, 3.14, 1.85, -3.88, group);
-  for (let i = 0; i < 2; i++) {
-    box(3.5, 0.06, 0.12, 0x4a5a52, 1.4, 1.5 + i * 0.7, -3.8, group);
+  const boardGroup = new THREE.Group();
+  const boards = [];
+  const boardMat = toonMat(0x4a3826, { map: surfaceTexture("wood", { repeat: [2, 1] }) });
+  for (let i = 0; i < 7; i++) {
+    const x = -0.12 + i * 0.5;
+    const plank = box(0.44, 2.0, 0.07, 0x4a3826, x, 1.85, -3.78 + (i % 2) * 0.02, boardGroup, {
+      material: boardMat,
+      rotZ: (i % 3 - 1) * 0.012,
+    });
+    boards.push(plank);
   }
-  for (let i = 0; i < 3; i++) {
-    box(0.06, 1.85, 0.12, 0x3a4a42, 0.4 + i * 1.0, 1.85, -3.8, group);
+  for (const y of [1.18, 2.4]) {
+    box(3.3, 0.14, 0.09, 0x3a2c1e, 1.4, y, -3.72, boardGroup, { material: boardMat, rotZ: y > 2 ? -0.01 : 0.012 });
   }
+  for (let i = 0; i < 8; i++) {
+    sphere(0.018, 5, 4, 0x2a2118, -0.08 + (i % 4) * 0.8, i < 4 ? 1.18 : 2.4, -3.66, boardGroup);
+  }
+  group.add(boardGroup);
+  refs.boardGroup = boardGroup;
+  refs.boards = boards;
   const windowGlow = pointLight(0x6fa0a0, 1.4, 6, 1.4, 1.8, -3.4, group, { decay: 1.5 });
   refs.windowGlow = windowGlow;
+
+  // low timber supports, earthen walls, roots and sandbags
+  for (const z of [-2.2, 0.2, 2.4]) {
+    box(9.2, 0.16, 0.2, 0x2a1e14, 0, 2.45, z, group, { material: boardMat });
+    for (const side of [-1, 1]) box(0.18, 2.4, 0.18, 0x2a1e14, side * 4.7, 1.2, z, group, { material: boardMat });
+  }
+  for (const side of [-1, 1]) {
+    plane(7.4, 2.3, 0xffffff, side * 4.86, 1.2, 0, group, {
+      rotY: side < 0 ? Math.PI / 2 : -Math.PI / 2,
+      material: toonMat(0x3a2a1c, { map: surfaceTexture("plaster", { repeat: [4, 2] }) }),
+    });
+  }
+  for (const [x, z, len] of [[-4.5, -2.8, 0.6], [-4.2, 1.2, 0.4], [4.4, -1.8, 0.5], [4.2, 2.0, 0.35]]) {
+    cyl(0.018, 0.018, len, 4, 0x2a2118, x, 2.95 - len / 2, z, group);
+  }
+  for (const [x, z] of [[-4.4, 3.2], [-3.6, 3.2], [4.3, -3.2], [3.6, -3.2]]) {
+    box(0.65, 0.25, 0.42, 0x4a3a28, x, 0.13, z, group, { rotY: Math.random() * 0.4 });
+    box(0.55, 0.18, 0.36, 0x3a2c1e, x, 0.34, z, group, { rotY: -0.1 });
+  }
+  // dark void under the floor hatch
+  plane(1.25, 0.8, 0x000000, 0.55, 0.006, 2.45, group, { rotX: -Math.PI / 2, material: basic(0x000000) });
 
   // exterior diorama: a slice of Old Kryl visible through the window
   const exterior = new THREE.Group();
