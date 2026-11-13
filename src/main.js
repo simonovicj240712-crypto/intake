@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { AudioEngine } from "./audio.js?v=27";
-import { UI } from "./ui.js?v=27";
+import { AudioEngine } from "./audio.js?v=31";
+import { UI } from "./ui.js?v=31";
 import {
   buildDiningRoom,
   buildCrawlspace,
@@ -15,7 +15,7 @@ import {
   toonMat,
   addGlow,
   glowTexture,
-} from "./world.js?v=27";
+} from "./world.js?v=31";
 import {
   buildDeadRail,
   buildZarya,
@@ -31,7 +31,7 @@ import {
   buildWarrenMaze,
   buildFloodedMaze,
   buildLairMaze,
-} from "./levels.js?v=27";
+} from "./levels.js?v=31";
 
 const canvas = document.getElementById("c");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
@@ -394,7 +394,7 @@ function updateTitle(dt) {
   }
   if (titleScene.refs.red) titleScene.refs.red.intensity = 3.6 + Math.sin(titleElapsed * 2.1) * 0.9;
   if (titleScene.refs.doorway) titleScene.refs.doorway.intensity = 2.6 + Math.sin(titleElapsed * 1.3) * 0.4;
-  if (titleScene.refs.tenant) titleScene.refs.tenant.rotation.z = Math.sin(titleElapsed * 0.62) * 0.012;
+  if (titleScene.refs.tenant) animateTenant(titleScene.refs.tenant, titleElapsed, 1.2);
   if (titleScene.refs.motes) titleScene.refs.motes.rotation.y += dt * 0.012;
 }
 
@@ -723,6 +723,9 @@ function updatePrologue(dt) {
   const p = prologue;
   const refs = p.refs || {};
   p.t += dt;
+  if (refs.prologueTenant?.visible) {
+    animateTenant(refs.prologueTenant, performance.now() * 0.001, 1.25);
+  }
 
   if (p.step === "dinner") {
     camera.position.y = 1.34 + Math.sin(p.t * 1.1) * 0.004;
@@ -739,10 +742,18 @@ function updatePrologue(dt) {
       p.dialog = 3;
       ui.speak("DAD", "We'll be right behind you.", 2200);
     }
-    if (p.t > 12.2) {
+    if (p.t > 11.6 && p.dialog < 4) {
+      p.dialog = 4;
+      ui.speak("SISTER", "You promised.", 1800);
+    }
+    if (p.t > 14.2 && p.dialog < 5) {
+      p.dialog = 5;
+      ui.speak("MOM", "If it starts, don't look back.", 2400);
+    }
+    if (p.t > 16.8) {
       advancePrologueStep("alarm");
       audio.stopCityMusic();
-      audio.alarm(8);
+      audio.alarm(10);
     }
     return;
   }
@@ -752,7 +763,9 @@ function updatePrologue(dt) {
       p.entered = true;
       if (refs.alarmLight) refs.alarmLight.intensity = 7;
       if (refs.alarmGlow) refs.alarmGlow.visible = true;
+      if (refs.prologueTenant) refs.prologueTenant.visible = true;
       ui.speak("DAD", "Under the floor. Now!", 2200);
+      addShake(0.012, 0.6);
     }
     const spin = 1.5 + p.t * 1.8;
     if (refs.alarmRotor) refs.alarmRotor.rotation.y += dt * spin;
@@ -772,29 +785,40 @@ function updatePrologue(dt) {
     if (monster) {
       monster.position.x += dt * 3.3;
       monster.rotation.y = 0.6;
+      monster.scale.setScalar(Math.min(2.0, 1.25 + p.t * 0.08));
       if (monster.position.x > 10) monster.position.x = -10;
+    }
+    if (refs.prologueTenant) {
+      refs.prologueTenant.position.z = Math.min(-0.2, refs.prologueTenant.position.z + dt * 0.06);
     }
     if (p.t > 1.1) {
       camera.position.y = lerp(1.34, 1.58, Math.min(1, (p.t - 1.1) * 2.4));
       applyLook();
     }
-    if (p.t > 6.8) advancePrologueStep("hide");
+    if (p.t > 3.6 && p.dialog < 1) {
+      p.dialog = 1;
+      ui.speak("MOM", "The children—!", 1600);
+    }
+    if (p.t > 9.6) advancePrologueStep("hide");
     return;
   }
 
   if (p.step === "hide") {
-    camera.position.y = 1.58;
-    applyLook();
     if (!p.entered) {
       p.entered = true;
       if (refs.hatchLight) refs.hatchLight.intensity = 1.2;
+      ui.speak("DAD", "Open it. Now!", 2000);
     }
+    camera.position.y = 1.58;
+    player.yaw = lerp(player.yaw, 0.22, Math.min(1, dt * 1.8));
+    player.pitch = lerp(player.pitch, -0.98, Math.min(1, dt * 1.7));
+    applyLook();
     if (refs.hatchLight) refs.hatchLight.intensity = 0.7 + Math.sin(p.t * 8) * 0.6;
-    if (p.t > 2.4 && refs.hatch) {
+    if (p.t > 2.6 && refs.hatch) {
       refs.hatch.position.y = Math.max(-0.55, refs.hatch.position.y - dt * 0.9);
       refs.hatch.rotation.x = Math.min(1.2, refs.hatch.rotation.x + dt * 1.4);
     }
-    if (p.t > 3.4) advancePrologueStep("grab");
+    if (p.t > 4.8) advancePrologueStep("grab");
     return;
   }
 
@@ -804,14 +828,15 @@ function updatePrologue(dt) {
       if (refs.brood) {
         refs.brood.visible = true;
         refs.brood.position.set(0.35, 2.15, 1.5);
+        refs.brood.scale.setScalar(2.8);
         refs.brood.rotation.z = Math.PI * 0.92;
       }
       audio.monsterGrowl();
-      addShake(0.04, 0.5);
+      addShake(0.04, 0.6);
       ui.speak("MOM", "Don't look at it—", 1800);
     }
     camera.position.y = 1.58;
-    player.pitch = lerp(player.pitch, 0.35, Math.min(1, dt * 2.2));
+    player.pitch = lerp(player.pitch, 0.38, Math.min(1, dt * 2.2));
     applyLook();
     if (refs.brood) {
       refs.brood.position.y = Math.max(0.55, refs.brood.position.y - dt * 1.1);
@@ -824,8 +849,47 @@ function updatePrologue(dt) {
         refs.sister.position.x = lerp(refs.sister.position.x, 0.6, Math.min(1, dt * 1.1));
         refs.sister.position.z = lerp(refs.sister.position.z, 1.2, Math.min(1, dt * 1.1));
       }
+      if (p.t > 2.8) {
+        if (refs.mom) refs.mom.visible = false;
+        if (refs.sister) refs.sister.visible = false;
+        if (refs.brood) {
+          refs.brood.position.set(0.35, 0.55, -0.9);
+          refs.brood.rotation.y = -Math.PI / 2;
+        }
+        if (!p.captured) {
+          p.captured = true;
+          audio.playSample("scream", { gain: 0.18, rate: 1.25, duration: 0.55 });
+        }
+      }
     }
-    if (p.t > 5.2) advancePrologueStep("boom");
+    if (p.t > 6.2) advancePrologueStep("loom");
+    return;
+  }
+
+  if (p.step === "loom") {
+    if (!p.entered) {
+      p.entered = true;
+      if (refs.brood) {
+        refs.brood.visible = true;
+        refs.brood.position.set(0.35, 0.55, -0.9);
+        refs.brood.scale.setScalar(2.85);
+        refs.brood.rotation.z = 0;
+        refs.brood.rotation.y = -Math.PI / 2;
+      }
+      audio.monsterGrowl();
+      audio.breath();
+      addShake(0.03, 0.5);
+    }
+    // knocked to the floor, looking up at the rat
+    camera.position.set(0, 0.62, 2.68);
+    player.yaw = lerp(player.yaw, 0, Math.min(1, dt * 2));
+    player.pitch = lerp(player.pitch, 0.72, Math.min(1, dt * 1.5));
+    applyLook();
+    if (refs.brood) {
+      refs.brood.position.x = 0.35 + Math.sin(p.t * 0.8) * 0.02;
+      refs.brood.rotation.z = Math.sin(p.t * 1.2) * 0.015;
+    }
+    if (p.t > 4.4) advancePrologueStep("boom");
     return;
   }
 
@@ -834,22 +898,31 @@ function updatePrologue(dt) {
       p.entered = true;
       ui.flash(220, "#ffe4b0");
       audio.gunshot();
-      addShake(0.14, 0.9);
+      addShake(0.14, 1.0);
       if (refs.brood) {
-        refs.brood.position.set(0.4, 0.3, 1.8);
+        refs.brood.position.set(0.35, 0.2, -0.9);
         refs.brood.rotation.z = Math.PI / 2;
+        refs.brood.rotation.y = -Math.PI / 2;
+        refs.brood.scale.setScalar(2.55);
       }
       if (refs.tokar) {
         refs.tokar.visible = true;
         refs.tokar.position.set(3.8, 0, 2.1);
         refs.tokar.rotation.y = -1.7;
       }
+      audio.playSample("scream", { gain: 0.22, rate: 0.8, duration: 0.6 });
       ui.speak("TOKAR", "Look at me. Not at them. At me.", 3600);
     }
-    camera.position.y = 1.58;
-    player.pitch = lerp(player.pitch, 0.02, Math.min(1, dt * 2));
+    // hold the low angle on the downed rat, then rise with Tokar
+    if (p.t < 1.6) {
+      camera.position.set(0, 0.62, 2.68);
+      player.pitch = lerp(player.pitch, 0.5, Math.min(1, dt * 2));
+    } else {
+      camera.position.y = lerp(0.62, 1.35, Math.min(1, (p.t - 1.6) * 0.9));
+      player.pitch = lerp(player.pitch, 0.04, Math.min(1, dt * 1.6));
+    }
     applyLook();
-    if (p.t > 4.2) {
+    if (p.t > 5.4) {
       startCarRide();
       return;
     }
@@ -870,7 +943,11 @@ function updatePrologue(dt) {
       p.dialog = 2;
       ui.speak("TOKAR", "Don't look back.", 2200);
     }
-    if (p.t > 15 && !p.fading) {
+    if (p.t > 13.5 && p.dialog < 3) {
+      p.dialog = 3;
+      ui.speak("TOKAR", "Almost there. Stay with me.", 2400);
+    }
+    if (p.t > 18.5 && !p.fading) {
       p.fading = true;
       audio.stopCarEngine();
       ui.fadeOut(1400).then(() => startKryl());
@@ -1055,6 +1132,35 @@ function resolveCollisions() {
       }
     }
   }
+}
+
+function animateTenant(tenant, time, intensity = 1) {
+  if (!tenant) return;
+  const rig = tenant.userData?.tenant;
+  if (!rig) return;
+  if (rig.baseY == null) rig.baseY = tenant.position.y;
+  const phase = rig.phase || 0;
+  const sway = Math.sin(time * 0.9 + phase);
+  const slow = Math.sin(time * 0.42 + phase);
+  if (rig.head) {
+    rig.head.rotation.z = sway * 0.07 * intensity;
+    rig.head.rotation.x = slow * 0.045 * intensity;
+  }
+  if (rig.neck) rig.neck.rotation.z = sway * 0.025 * intensity;
+  if (rig.arms) {
+    const left = rig.arms[0];
+    const right = rig.arms[1];
+    if (left) {
+      left.rotation.z = 0.06 + Math.sin(time * 0.75 + phase) * 0.06 * intensity;
+      left.rotation.x = Math.sin(time * 0.5 + phase + 1) * 0.05 * intensity;
+    }
+    if (right) {
+      right.rotation.z = -0.06 + Math.sin(time * 0.68 + phase + 2) * 0.06 * intensity;
+      right.rotation.x = Math.sin(time * 0.44 + phase) * 0.05 * intensity;
+    }
+  }
+  tenant.rotation.z = sway * 0.008 * intensity;
+  tenant.position.y = (rig.baseY || 0) + Math.sin(time * 1.25 + phase) * 0.006 * intensity;
 }
 
 function updateCityNpcs(dt, npcs) {
@@ -1263,16 +1369,36 @@ function updateExplore(dt) {
     }
   }
 
+  const nowT = performance.now() * 0.001;
+  for (const t of level.data.refs?.watchers || []) animateTenant(t, nowT, 1.05);
+  for (const t of level.data.refs?.tenants || []) animateTenant(t, nowT, 0.9);
+
   const sightings = level.data.refs?.sightings;
   if (sightings) {
     for (const s of sightings) {
       if (!s.visible) continue;
+      if ((s.userData?.vanishT || 0) > 0) {
+        s.userData.vanishT -= dt;
+        const k = Math.max(0, s.userData.vanishT / 0.45);
+        s.scale.setScalar(Math.max(0.01, k));
+        s.position.y = (s.userData.vanishBaseY || 0) + (1 - k) * 0.75;
+        if (s.userData.vanishT <= 0) {
+          s.visible = false;
+          s.scale.setScalar(1);
+        }
+        continue;
+      }
+      animateTenant(s, nowT + (s.userData.tenant?.phase || 0), 1.15);
       if ((s.userData?.revealTime || 0) > performance.now()) continue;
       if (distXZ(player.pos, s.position) > 8) continue;
+      const targetYaw = Math.atan2(player.pos.x - s.position.x, player.pos.z - s.position.z);
+      s.rotation.y = lerpAngle(s.rotation.y, targetYaw, Math.min(1, dt * 0.9));
       const target = new THREE.Vector3(s.position.x, 1.75, s.position.z);
       if (lookDot(target) > 0.985) {
-        s.visible = false;
+        s.userData.vanishT = 0.45;
+        s.userData.vanishBaseY = s.position.y;
         audio.whisper();
+        addShake(0.008, 0.2);
         ui.subtitle("There was nothing there.", 1700);
       }
     }
@@ -1921,7 +2047,8 @@ function updateVision(dt) {
   }
   if (refs.warning) refs.warning.intensity = vision.t > 1 ? 1.5 + Math.sin(vision.t * 18) * 0.8 : 0;
   if (refs.tenant) {
-    refs.tenant.position.z += dt * 0.05;
+    refs.tenant.position.z += dt * 0.09;
+    animateTenant(refs.tenant, vision.t, 1.35);
   }
 
   if (vision.t >= vision.duration) finishVision();
@@ -1955,6 +2082,7 @@ function updateEnding(dt) {
   const z = ending.startPos.z - Math.min(2.9, ending.t * 0.22);
   camera.position.set(Math.sin(ending.t * 0.4) * 0.12, 1.55, z);
   camera.lookAt(0, 1.2, -4.2);
+  for (const t of world?.refs?.tenants || []) animateTenant(t, ending.t, 1.1);
 
   if (ending.t > 4 && ending.captions.length === 1) {
     ending.captions.push(1);
@@ -2476,7 +2604,7 @@ document.addEventListener("mousemove", (e) => {
   player.pitch -= e.movementY * sens;
   if (state === "prologue") {
     player.yaw = clamp(player.yaw, -1.35, 1.35);
-    player.pitch = clamp(player.pitch, -0.55, 0.5);
+    player.pitch = clamp(player.pitch, -1.15, 0.7);
   } else {
     player.pitch = clamp(player.pitch, -1.25, 1.25);
   }

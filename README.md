@@ -7,7 +7,7 @@ Playable in the browser. No install, no build step.
 
 ## Play
 
-**https://simonovicj240712-crypto.github.io/intake/?v=27**
+**https://simonovicj240712-crypto.github.io/intake/?v=31**
 
 Or run locally with any static file server. For example, with Java 18+:
 
@@ -24,7 +24,8 @@ Then open <http://127.0.0.1:8000/>.
 
 This is the **complete playable campaign pass** — a condensed version of the full 3–3.5 hour design. All major story beats are in:
 
-- **Prologue — The Last Night in the Bunker.** A Metro-style bunker home, the family dinner, the city through the window, the spinning ceiling alarm, the Broodmother attack, Tokar's rescue, and the armored-car ride through the ruins.
+- **Prologue — The Last Night in the Bunker.** A Metro-style bunker home, the family dinner, the city through the window, the spinning ceiling alarm, the Broodmother attack, Tokar's rescue, and the armored-car ride through the ruins. The attack now has a longer escalation, a growing Broodmother, and a final low-angle shot looking up at the rat before the gunshot.
+- **Animated Tenants.** The black, faceless tall creatures now sway, turn their heads, reach with long arms, and dissolve when observed instead of standing frozen.
 - **Kryl Station.** An expanded survivor market with bunk rooms, a clinic, a canteen, a shrine, wandering NPCs, Tokar, the first pistol, and the descent.
 - **Act I — The Descent.** First vent, body looting, and the first Crawler jumpscare.
 - **The Dead Rail.** Open rail yard, ruined skyline, scavengers, rats, the gate to Zarya, and the Passenger Car vision.
@@ -94,7 +95,7 @@ These are development shortcuts and do not affect normal play:
 
 - This is a condensed prototype, not the full 3–3.5 hour design.
 - Pointer lock must be granted by the browser. Starting the game with the play glyph requests it immediately; if the browser dismisses it, click the screen once. There is deliberately no on-screen look hint.
-- If the play glyph appears to do nothing, wait up to five seconds: a hidden boot status records engine errors in the console, and the glyph pulses red on failure. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=27` clears old cached builds.
+- If the play glyph appears to do nothing, wait up to five seconds: a hidden boot status records engine errors in the console, and the glyph pulses red on failure. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=31` clears old cached builds.
 - Some set dressing and creature animation still reads as placeholder; the maze layout is procedurally generated on every load.
 - Automated tests cover transitions, auto-interaction, shop, death/retry, and the ending, but not trusted user pointer-lock input.
 

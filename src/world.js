@@ -526,12 +526,34 @@ export function makeHumanoid({ skin = C.flesh, coat = C.cloth, pants = 0x1a211f,
 export function makeTenant(height = 2.45) {
   const g = new THREE.Group();
   const blackMat = mat(0x020202);
-  cyl(0.17, 0.24, height * 0.55, 8, 0x020202, 0, height * 0.52, 0, g, { material: blackMat });
-  sphere(0.19, 10, 8, 0x020202, 0, height * 0.84, 0, g, { material: blackMat, sy: 1.25 });
+  const torso = cyl(0.17, 0.24, height * 0.55, 8, 0x020202, 0, height * 0.52, 0, g, { material: blackMat });
+  const neck = cyl(0.055, 0.07, height * 0.12, 6, 0x020202, 0, height * 0.76, 0, g, { material: blackMat });
+  const head = sphere(0.19, 10, 8, 0x020202, 0, height * 0.86, 0, g, { material: blackMat, sy: 1.28 });
+  const arms = [];
   for (const side of [-1, 1]) {
-    cyl(0.055, 0.045, height * 0.48, 6, 0x020202, side * 0.24, height * 0.52, 0, g, { material: blackMat, rotZ: side * 0.035 });
-    cyl(0.075, 0.06, height * 0.46, 6, 0x020202, side * 0.1, height * 0.23, 0, g, { material: blackMat, rotZ: side * 0.02 });
+    const arm = new THREE.Group();
+    arm.position.set(side * 0.235, height * 0.69, 0);
+    cyl(0.055, 0.043, height * 0.46, 6, 0x020202, 0, -height * 0.23, 0, arm, { material: blackMat });
+    cyl(0.04, 0.035, height * 0.28, 6, 0x020202, side * 0.012, -height * 0.5, 0.035, arm, { material: blackMat, rotX: -0.12 });
+    sphere(0.052, 7, 5, 0x020202, side * 0.015, -height * 0.65, 0.07, arm, { material: blackMat, sy: 1.1 });
+    for (let i = 0; i < 3; i++) {
+      cyl(0.006, 0.014, height * 0.09, 4, 0x020202, side * 0.015 - 0.03 + i * 0.03, -height * 0.72, 0.09, arm, { material: blackMat, rotX: 0.25 + i * 0.08 });
+    }
+    g.add(arm);
+    arms.push(arm);
   }
+  for (const side of [-1, 1]) {
+    cyl(0.075, 0.06, height * 0.46, 6, 0x020202, side * 0.1, height * 0.23, 0, g, { material: blackMat, rotZ: side * 0.02 });
+    sphere(0.08, 7, 5, 0x020202, side * 0.1, 0.03, 0.02, g, { material: blackMat, sx: 0.8, sy: 0.5, sz: 1.3 });
+  }
+  g.userData.tenant = {
+    head,
+    neck,
+    torso,
+    arms,
+    baseY: null,
+    phase: Math.random() * Math.PI * 2,
+  };
   // no face, no reflection; intentionally a hole
   return g;
 }
@@ -1134,7 +1156,7 @@ export function buildPrologueBunker() {
   refs.hatchLight = pointLight(0xffc078, 0, 3.2, 0.55, 0.35, 2.45, group, { decay: 1.5 });
 
   // hidden Broodmother above the ceiling / behind hatch
-  const brood = makeRat({ scale: 2.05, brood: true });
+  const brood = makeRat({ scale: 2.55, brood: true });
   brood.position.set(0.3, 2.25, 1.7);
   brood.rotation.y = -0.4;
   brood.rotation.z = Math.PI * 0.92;
@@ -1244,6 +1266,13 @@ export function buildPrologueBunker() {
   extMonster.rotation.y = 1.0;
   exterior.add(extMonster);
   refs.exteriorMonster = extMonster;
+  // a tall Tenant stands still while the city runs
+  const prologueTenant = makeTenant(2.8);
+  prologueTenant.position.set(0.5, 0, -1.0);
+  prologueTenant.rotation.y = Math.PI;
+  prologueTenant.visible = false;
+  exterior.add(prologueTenant);
+  refs.prologueTenant = prologueTenant;
   group.add(exterior);
   refs.exterior = exterior;
 
