@@ -1,9 +1,11 @@
 import * as THREE from "three";
-import { AudioEngine } from "./audio.js?v=14";
-import { UI } from "./ui.js?v=14";
+import { AudioEngine } from "./audio.js?v=27";
+import { UI } from "./ui.js?v=27";
 import {
   buildDiningRoom,
   buildCrawlspace,
+  buildPrologueBunker,
+  buildCarRide,
   buildKryl,
   buildVent,
   makePistol,
@@ -13,7 +15,7 @@ import {
   toonMat,
   addGlow,
   glowTexture,
-} from "./world.js?v=14";
+} from "./world.js?v=27";
 import {
   buildDeadRail,
   buildZarya,
@@ -29,7 +31,7 @@ import {
   buildWarrenMaze,
   buildFloodedMaze,
   buildLairMaze,
-} from "./levels.js?v=14";
+} from "./levels.js?v=27";
 
 const canvas = document.getElementById("c");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
@@ -304,6 +306,7 @@ function updateCollectBursts(dt) {
 function resetCommon() {
   for (const b of collectBursts) b.sprite.material.dispose();
   collectBursts.length = 0;
+  audio.stopLoops();
   dialogueOpen = false;
   jumpscare = null;
   vision = null;
@@ -420,7 +423,7 @@ document.addEventListener("pointerlockchange", () => {
   updateLookHint();
 });
 
-function startPrologue() {
+function startPrologueLegacy() {
   hideTitle();
   resetCommon();
   resetProgress();
@@ -510,7 +513,7 @@ function startCrawlspace() {
   };
 }
 
-function updatePrologue(dt) {
+function updatePrologueLegacy(dt) {
   if (!prologue || !world) return;
   const p = prologue;
   const refs = world.refs || {};
@@ -634,6 +637,248 @@ function updatePrologue(dt) {
   }
 }
 
+function startPrologue() {
+  hideTitle();
+  resetCommon();
+  resetProgress();
+  state = "prologue";
+  levelId = null;
+  prologue = null;
+  gunshotWarned = false;
+  const res = loadWorld(buildPrologueBunker());
+  scene.background.setHex(0x120d08);
+  setFog(0x160f0a, 0.024);
+  ambient.color.setHex(0xa08060);
+  ambient.intensity = 0.9;
+  player.pos.set(0, 0, 2.65);
+  player.yaw = 0;
+  player.pitch = -0.04;
+  player.height = 1.34;
+  player.flashlightOn = false;
+  flashlight.intensity = 0;
+  headlamp.intensity = 0.8;
+  weapon.visible = false;
+  camera.position.set(0, 1.34, 2.65);
+  applyLook();
+  ui.crosshair(false);
+  ui.prompt(null);
+  audio.setAmbient(0.035);
+  audio.startCityMusic("kryl");
+  ui.clearFade();
+  prologue = {
+    step: "dinner",
+    t: 0,
+    allowLook: true,
+    entered: false,
+    dialog: 0,
+    fading: false,
+    refs: res.refs,
+  };
+  ui.speak("SISTER", "You said we'd leave together.", 2800);
+  return res;
+}
+
+function startCarRide() {
+  if (!prologue || prologue.step === "car") return;
+  const res = loadWorld(buildCarRide());
+  scene.background.setHex(0x14232b);
+  setFog(0x14232b, 0.018);
+  ambient.color.setHex(0x7a9aa0);
+  ambient.intensity = 0.95;
+  player.pos.set(0, 0, 0);
+  player.yaw = 0;
+  player.pitch = -0.02;
+  player.height = 1.08;
+  player.flashlightOn = false;
+  flashlight.intensity = 0;
+  headlamp.intensity = 2.2;
+  weapon.visible = false;
+  camera.position.set(0.52, 1.12, 0.5);
+  applyLook();
+  ui.crosshair(false);
+  audio.setAmbient(0.035);
+  audio.startCarEngine();
+  prologue = {
+    step: "car",
+    t: 0,
+    allowLook: true,
+    entered: true,
+    dialog: 0,
+    fading: false,
+    refs: res.refs,
+  };
+  ui.speak("TOKAR", "Don't look back.", 2600);
+}
+
+function advancePrologueStep(next) {
+  if (!prologue) return;
+  prologue.step = next;
+  prologue.t = 0;
+  prologue.entered = false;
+  prologue.dialog = 0;
+}
+
+function updatePrologue(dt) {
+  if (!prologue) return;
+  const p = prologue;
+  const refs = p.refs || {};
+  p.t += dt;
+
+  if (p.step === "dinner") {
+    camera.position.y = 1.34 + Math.sin(p.t * 1.1) * 0.004;
+    applyLook();
+    if (p.t > 1.8 && p.dialog < 1) {
+      p.dialog = 1;
+      ui.speak("DAD", "When the alarm goes, we go under the floor. All of us.", 3200);
+    }
+    if (p.t > 6.2 && p.dialog < 2) {
+      p.dialog = 2;
+      ui.speak("MOM", "Not without you.", 2200);
+    }
+    if (p.t > 8.8 && p.dialog < 3) {
+      p.dialog = 3;
+      ui.speak("DAD", "We'll be right behind you.", 2200);
+    }
+    if (p.t > 12.2) {
+      advancePrologueStep("alarm");
+      audio.stopCityMusic();
+      audio.alarm(8);
+    }
+    return;
+  }
+
+  if (p.step === "alarm") {
+    if (!p.entered) {
+      p.entered = true;
+      if (refs.alarmLight) refs.alarmLight.intensity = 7;
+      if (refs.alarmGlow) refs.alarmGlow.visible = true;
+      ui.speak("DAD", "Under the floor. Now!", 2200);
+    }
+    const spin = 1.5 + p.t * 1.8;
+    if (refs.alarmRotor) refs.alarmRotor.rotation.y += dt * spin;
+    if (refs.alarmLight) refs.alarmLight.intensity = 4 + Math.sin(p.t * 14) * 3.5;
+    if (refs.alarmGlow) refs.alarmGlow.scale.setScalar(2.0 + Math.sin(p.t * 14) * 0.35);
+    const people = refs.exteriorPeople || [];
+    for (let i = 0; i < people.length; i++) {
+      const person = people[i];
+      const dir = i % 2 === 0 ? 1 : -1;
+      person.position.x += dt * (1.2 + (i % 3) * 0.35) * dir;
+      person.position.z -= dt * 0.12;
+      person.rotation.y = dir > 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+      if (person.position.x > 11) person.position.x = -11;
+      if (person.position.x < -11) person.position.x = 11;
+    }
+    const monster = refs.exteriorMonster;
+    if (monster) {
+      monster.position.x += dt * 3.3;
+      monster.rotation.y = 0.6;
+      if (monster.position.x > 10) monster.position.x = -10;
+    }
+    if (p.t > 1.1) {
+      camera.position.y = lerp(1.34, 1.58, Math.min(1, (p.t - 1.1) * 2.4));
+      applyLook();
+    }
+    if (p.t > 6.8) advancePrologueStep("hide");
+    return;
+  }
+
+  if (p.step === "hide") {
+    camera.position.y = 1.58;
+    applyLook();
+    if (!p.entered) {
+      p.entered = true;
+      if (refs.hatchLight) refs.hatchLight.intensity = 1.2;
+    }
+    if (refs.hatchLight) refs.hatchLight.intensity = 0.7 + Math.sin(p.t * 8) * 0.6;
+    if (p.t > 2.4 && refs.hatch) {
+      refs.hatch.position.y = Math.max(-0.55, refs.hatch.position.y - dt * 0.9);
+      refs.hatch.rotation.x = Math.min(1.2, refs.hatch.rotation.x + dt * 1.4);
+    }
+    if (p.t > 3.4) advancePrologueStep("grab");
+    return;
+  }
+
+  if (p.step === "grab") {
+    if (!p.entered) {
+      p.entered = true;
+      if (refs.brood) {
+        refs.brood.visible = true;
+        refs.brood.position.set(0.35, 2.15, 1.5);
+        refs.brood.rotation.z = Math.PI * 0.92;
+      }
+      audio.monsterGrowl();
+      addShake(0.04, 0.5);
+      ui.speak("MOM", "Don't look at it—", 1800);
+    }
+    camera.position.y = 1.58;
+    player.pitch = lerp(player.pitch, 0.35, Math.min(1, dt * 2.2));
+    applyLook();
+    if (refs.brood) {
+      refs.brood.position.y = Math.max(0.55, refs.brood.position.y - dt * 1.1);
+      refs.brood.rotation.z = lerp(refs.brood.rotation.z, 0, Math.min(1, dt * 2.5));
+      if (refs.mom) {
+        refs.mom.position.x = lerp(refs.mom.position.x, 0.1, Math.min(1, dt * 0.8));
+        refs.mom.position.z = lerp(refs.mom.position.z, 1.0, Math.min(1, dt * 0.8));
+      }
+      if (refs.sister) {
+        refs.sister.position.x = lerp(refs.sister.position.x, 0.6, Math.min(1, dt * 1.1));
+        refs.sister.position.z = lerp(refs.sister.position.z, 1.2, Math.min(1, dt * 1.1));
+      }
+    }
+    if (p.t > 5.2) advancePrologueStep("boom");
+    return;
+  }
+
+  if (p.step === "boom") {
+    if (!p.entered) {
+      p.entered = true;
+      ui.flash(220, "#ffe4b0");
+      audio.gunshot();
+      addShake(0.14, 0.9);
+      if (refs.brood) {
+        refs.brood.position.set(0.4, 0.3, 1.8);
+        refs.brood.rotation.z = Math.PI / 2;
+      }
+      if (refs.tokar) {
+        refs.tokar.visible = true;
+        refs.tokar.position.set(3.8, 0, 2.1);
+        refs.tokar.rotation.y = -1.7;
+      }
+      ui.speak("TOKAR", "Look at me. Not at them. At me.", 3600);
+    }
+    camera.position.y = 1.58;
+    player.pitch = lerp(player.pitch, 0.02, Math.min(1, dt * 2));
+    applyLook();
+    if (p.t > 4.2) {
+      startCarRide();
+      return;
+    }
+    return;
+  }
+
+  if (p.step === "car") {
+    const carRefs = p.refs || {};
+    if (carRefs.ruins) carRefs.ruins.position.z += dt * 5.2;
+    if (carRefs.cabinLight) carRefs.cabinLight.intensity = 2.2 + Math.sin(p.t * 21) * 0.5;
+    camera.position.y = 1.08 + Math.sin(p.t * 7.4) * 0.006;
+    applyLook();
+    if (p.t > 3 && p.dialog < 1) {
+      p.dialog = 1;
+      ui.speak("TOKAR", "Kryl is still standing. That's where we're going.", 3400);
+    }
+    if (p.t > 9.5 && p.dialog < 2) {
+      p.dialog = 2;
+      ui.speak("TOKAR", "Don't look back.", 2200);
+    }
+    if (p.t > 15 && !p.fading) {
+      p.fading = true;
+      audio.stopCarEngine();
+      ui.fadeOut(1400).then(() => startKryl());
+    }
+    return;
+  }
+}
+
 function startKryl() {
   resetCommon();
   state = "kryl";
@@ -644,9 +889,9 @@ function startKryl() {
   scene.background.setHex(0x0a1412);
   setFog(0x0b1410, 0.02);
   ambient.color.setHex(0xc09060);
-  ambient.intensity = 1.4;
-  player.pos.set(0, 0, 4.8);
-  player.yaw = 0;
+  ambient.intensity = 1.7;
+  player.pos.copy(res.spawn || new THREE.Vector3(0, 0, 4.8));
+  player.yaw = res.spawnYaw ?? 0;
   player.pitch = 0;
   player.height = 1.65;
   player.crouched = false;
@@ -667,7 +912,8 @@ function startKryl() {
   applyLook();
   ui.crosshair(true);
   audio.setAmbient(0.05);
-  kryl = { talked: false, pages: [], page: 0, nearTokar: false, nearVent: false };
+  audio.startCityMusic("kryl");
+  kryl = { talked: false, pages: [], page: 0, nearTokar: false, nearVent: false, leaving: false, npcs: res.npcs || [] };
   ui.chapter("KRYL STATION", "YEARS LATER", "The last safe place you know", 3000);
   setTimeout(() => {
     if (state === "kryl" && !dialogueOpen && !kryl?.talked) ui.speak("TOKAR", "Over here, kid.", 2600);
@@ -719,6 +965,7 @@ function startVent(retry = false) {
   ui.crosshair(true);
   ui.prompt(null);
   audio.setAmbient(0.06);
+  audio.startVentAmbience();
   vent = {
     triggered: false,
     warning: 0,
@@ -810,15 +1057,59 @@ function resolveCollisions() {
   }
 }
 
+function updateCityNpcs(dt, npcs) {
+  if (!npcs || !npcs.length) return;
+  const now = performance.now();
+  let near = null;
+  let nearD = Infinity;
+  for (const npc of npcs) {
+    const g = npc.group;
+    if (!g) continue;
+    if (npc.route && npc.route.length > 1) {
+      const target = npc.route[npc.idx % npc.route.length];
+      const tx = Array.isArray(target) ? target[0] : target.x;
+      const tz = Array.isArray(target) ? target[1] : target.z;
+      const dx = tx - g.position.x;
+      const dz = tz - g.position.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.12) {
+        npc.idx = (npc.idx + 1) % npc.route.length;
+      } else {
+        g.position.x += (dx / d) * npc.speed * dt;
+        g.position.z += (dz / d) * npc.speed * dt;
+        g.rotation.y = Math.atan2(dx, dz);
+      }
+    } else {
+      g.position.y = Math.sin(now * 0.0018 + npc.idx) * 0.006;
+    }
+    const pd = distXZ(player.pos, g.position);
+    if (pd < 2.5) {
+      const target = new THREE.Vector3(g.position.x, 1.42, g.position.z);
+      if (lookDot(target) > 0.15 && pd < nearD) {
+        near = npc;
+        nearD = pd;
+      }
+    }
+  }
+  if (near && now > (near.nextTalk || 0) && !dialogueOpen) {
+    near.nextTalk = now + 14000;
+    const lines = near.lines || [];
+    if (lines.length) {
+      ui.speak(near.name, lines[Math.floor(Math.random() * lines.length)], 3000);
+    }
+  }
+}
+
 function updateKryl(dt) {
   if (!world || !kryl) return;
   player.forcedCrawl = false;
   updatePlayer(dt);
+  if (kryl.npcs) updateCityNpcs(dt, kryl.npcs);
   if (dialogueOpen) return;
 
   const refs = world.refs;
-  kryl.nearTokar = distXZ(player.pos, refs.tokar.position) < 2.75;
-  kryl.nearVent = distXZ(player.pos, new THREE.Vector3(0, 0, -6.2)) < 2.35;
+  kryl.nearTokar = distXZ(player.pos, refs.tokar.position) < 2.2;
+  kryl.nearVent = distXZ(player.pos, refs.ventDoor) < 2.35;
 
   if (kryl.nearTokar && !kryl.talked) {
     startDialogue();
@@ -892,6 +1183,7 @@ function updateExplore(dt) {
   updateEnemies(dt);
   if (state !== "explore") return;
   updateAmbientCrawler(dt);
+  if (level.npcs) updateCityNpcs(dt, level.npcs);
 
   if (level.data.refs?.fan && level.fanOn) level.data.refs.fan.rotation.z += dt * 10;
   const beacon = level.data.refs?.shopBeacon;
@@ -1044,7 +1336,14 @@ function lineOfSight(ax, az, bx, bz) {
 function updateEnemies(dt) {
   if (!level?.data?.enemies) return;
   for (const enemy of level.data.enemies) {
-    if (enemy.dead) continue;
+    if (enemy.dead) {
+      if (enemy.group.visible) {
+        enemy.deathT = (enemy.deathT || 0) + dt;
+        enemy.group.rotation.z = Math.min(1.35, enemy.deathT * 4.5);
+        enemy.group.position.y = Math.max(0, 0.08 - enemy.deathT * 0.12);
+      }
+      continue;
+    }
     const group = enemy.group;
     const d = distXZ(player.pos, group.position);
     if (d > enemy.alertRange) continue;
@@ -1380,6 +1679,8 @@ function startLevel(id, retry = false) {
   ui.crosshair(id !== "nest");
   ui.prompt(null);
   audio.setAmbient(id === "dead_rail" ? 0.07 : 0.055);
+  if (id === "zarya") audio.startCityMusic("zarya");
+  else if (["warren", "flooded", "fan", "safe_room", "lair", "last_crawl"].includes(id)) audio.startVentAmbience();
 
   for (const s of data.refs?.sightings || []) {
     s.userData.revealTime = performance.now() + 2600;
@@ -1393,6 +1694,7 @@ function startLevel(id, retry = false) {
     valves: 0,
     fanOn: false,
     radioUsed: false,
+    npcs: data.npcs || [],
     near: null,
     door: data.refs?.exit || data.refs?.gate || null,
     doorItem: data.interactables.find((i) => i.kind === "door" || i.kind === "exit") || null,
@@ -1753,7 +2055,7 @@ function resolveJumpscare(success) {
       j.crawler.position.y = 0.14;
       j.crawler.scale.setScalar(1.3);
     }
-    audio.scream();
+    audio.crawlerDeath();
     ui.subtitle("It stops moving. The vent is quiet again.", 2600);
     addShake(0.02, 0.3);
   } else {
@@ -1763,6 +2065,24 @@ function resolveJumpscare(success) {
     ui.death(true);
     audio.heartbeat(0.1);
   }
+}
+
+function crawlerShot() {
+  if (state !== "jumpscare" || !jumpscare || jumpscare.resolved) return;
+  if (player.fireCooldown > 0) return;
+  if (player.ammo > 0) {
+    player.ammo--;
+    player.mags[player.weapon] = player.ammo;
+    player.fireCooldown = 0.3;
+    audio.gunshot();
+    muzzle.intensity = 7;
+    weaponKick = 0.18;
+    ui.flash(90, "#ffd9a6");
+    addShake(0.04, 0.22);
+  } else {
+    audio.click();
+  }
+  resolveJumpscare(true);
 }
 
 function findEnemyRef(obj) {
@@ -1786,12 +2106,16 @@ function isVisible(obj) {
 function killEnemy(enemy) {
   if (!enemy || enemy.dead) return;
   enemy.dead = true;
-  enemy.group.visible = false;
+  enemy.deathT = 0;
+  enemy.group.visible = true;
   const reward = enemy.type === "scavenger" ? 7 : enemy.type === "crawler" ? 10 : 3;
   mgr += reward;
   player.reserve.pistol += enemy.type === "scavenger" ? 4 : 2;
-  audio.click();
-  ui.subtitle(`${enemy.type === "scavenger" ? "Scavenger" : enemy.type === "rat" ? "Rat" : "Crawler"} down. +${reward} MGR`, 1600);
+  audio.ratDeath();
+  addShake(0.012, 0.16);
+  setTimeout(() => {
+    if (enemy.group) enemy.group.visible = false;
+  }, 900);
 }
 
 function hurtPlayer(amount) {
@@ -1844,6 +2168,7 @@ function fire() {
     shot.y += (Math.random() - 0.5) * spread * 2;
     shot.z += (Math.random() - 0.5) * spread * 2;
     shot.normalize();
+    raycaster.camera = camera;
     raycaster.set(origin, shot);
     raycaster.far = 45;
     const hits = raycaster.intersectObjects(groups, true);
@@ -2169,7 +2494,7 @@ document.addEventListener("mousedown", (e) => {
     return;
   }
   if (state === "jumpscare") {
-    resolveJumpscare(true);
+    crawlerShot();
     return;
   }
   if (state === "vision") {
@@ -2333,6 +2658,7 @@ window.__intake = {
   get scene() { return scene; },
   get camera() { return camera; },
   get ambient() { return ambient; },
+  get audio() { return audio; },
   get flashlight() { return flashlight; },
   get renderer() { return renderer; },
   snapshot() {

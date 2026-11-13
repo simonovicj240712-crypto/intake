@@ -10,13 +10,14 @@ import {
   surfaceTexture,
   addGlow,
   addLightShaft,
+  addDust,
   pointLight,
   makeHumanoid,
   makeRat,
   makeTenant,
   makeCrawler,
   makeScavenger,
-} from "./world.js?v=14";
+} from "./world.js?v=27";
 
 function vec(x, y, z) {
   return new THREE.Vector3(x, y, z);
@@ -170,7 +171,7 @@ function enemy(type, group, opts = {}) {
   const e = {
     type,
     group,
-    health: opts.health ?? (type === "rat" ? 30 : type === "scavenger" ? 60 : 80),
+    health: opts.health ?? (type === "rat" ? 20 : type === "scavenger" ? 60 : 80),
     maxHealth: opts.health ?? (type === "rat" ? 30 : type === "scavenger" ? 60 : 80),
     speed: opts.speed ?? (type === "rat" ? 2.0 : type === "scavenger" ? 1.2 : 2.2),
     damage: opts.damage ?? (type === "rat" ? 5 : type === "scavenger" ? 5 : 20),
@@ -186,7 +187,7 @@ function enemy(type, group, opts = {}) {
 }
 
 function ratEnemy(group, x, z) {
-  const r = makeRat({ scale: 0.8 });
+  const r = makeRat({ scale: 0.85 });
   r.position.set(x, 0, z);
   r.rotation.y = Math.random() * Math.PI * 2;
   group.add(r);
@@ -411,7 +412,7 @@ export function buildDeadRail() {
   };
 }
 
-export function buildZarya() {
+function buildZaryaLegacy() {
   const group = new THREE.Group();
   const colliders = [];
   const w = 14, d = 13;
@@ -542,6 +543,250 @@ export function buildZarya() {
     fog: { color: 0x090b08, density: 0.028 },
     ambient: { color: 0x8a6a4a, intensity: 0.72 },
     background: 0x050605,
+  };
+}
+
+export function buildZarya() {
+  const group = new THREE.Group();
+  const colliders = [];
+  const npcs = [];
+  const refs = {};
+  const W = 34, D = 30, H = 5.2;
+  const floorMat = toonMat(0x3e4b46, { map: surfaceTexture("tile", { repeat: [12, 12] }) });
+  const wallMat = toonMat(0x52645d, { map: surfaceTexture("tile", { repeat: [8, 3] }) });
+  const metalMat = toonMat(0x37453f, { map: surfaceTexture("metal", { repeat: [8, 2] }) });
+  const woodMat = toonMat(0x6a4a30, { map: surfaceTexture("wood", { repeat: [5, 2] }) });
+
+  box(W, 0.2, D, 0x3e4b46, 0, -0.1, 0, group, { material: floorMat });
+  box(W, H, 0.3, 0x52645d, 0, H / 2, -D / 2, group, { material: wallMat });
+  box(W, H, 0.3, 0x46564f, 0, H / 2, D / 2, group, { material: wallMat });
+  for (const side of [-1, 1]) {
+    box(0.3, H, D, 0x46564f, side * W / 2, H / 2, 0, group, { material: wallMat });
+    colliders.push({ minX: side * W / 2 - 0.2, maxX: side * W / 2 + 0.2, minZ: -D / 2, maxZ: D / 2 });
+  }
+  colliders.push({ minX: -W / 2, maxX: W / 2, minZ: -D / 2 - 0.2, maxZ: -D / 2 + 0.2 });
+  colliders.push({ minX: -W / 2, maxX: W / 2, minZ: D / 2 - 0.2, maxZ: D / 2 + 0.2 });
+  box(W, 0.16, D, 0x1a2420, 0, H, 0, group);
+
+  // tall gallery ribs and catwalks (visual verticality)
+  for (const side of [-1, 1]) {
+    for (const z of [-12, -7, -2, 3, 8, 13]) {
+      box(0.16, H, 0.24, 0x2b3a34, side * 15.8, H / 2, z, group);
+    }
+    box(0.1, 0.12, 28, 0x8a6a3a, side * 15.7, 2.9, 0, group);
+    box(0.1, 0.08, 28, 0x8a6a3a, side * 15.7, 4.1, 0, group);
+  }
+  for (const z of [-10, -4, 1, 6, 11]) {
+    box(31, 0.08, 0.14, 0x2b3a34, 0, 2.8, z, group);
+    box(31, 0.06, 0.12, 0x2b3a34, 0, 4.0, z, group);
+  }
+  // upper gallery railings and laundry
+  for (const side of [-1, 1]) {
+    for (let z = -10; z <= 10; z += 3.2) {
+      box(0.06, 1.0, 0.06, 0x596b62, side * 10.4, 3.4, z, group);
+    }
+    box(0.06, 0.08, 22, 0x596b62, side * 10.4, 3.9, 0, group);
+  }
+  for (let i = 0; i < 8; i++) {
+    const x = -8 + i * 2.2;
+    plane(0.8, 0.45, 0xffffff, x, 3.35, 12.4, group, { material: toonMat(i % 2 ? 0x2e6f66 : 0x8a3a2a, { side: THREE.DoubleSide }) });
+  }
+
+  // side rooms / district partitions with wide doorways
+  const partition = (x, z1, z2) => {
+    const len = z2 - z1;
+    box(0.22, 2.9, len, 0x3e514a, x, 1.45, (z1 + z2) / 2, group);
+    box(0.3, 0.1, len, 0x8a6a3a, x, 2.92, (z1 + z2) / 2, group);
+    colliders.push({ minX: x - 0.16, maxX: x + 0.16, minZ: z1, maxZ: z2 });
+  };
+  for (const side of [-1, 1]) {
+    const x = side * 6.4;
+    partition(x, -15, -11.2);
+    partition(x, -9.4, -3.2);
+    partition(x, 0.8, 5.2);
+    partition(x, 7.4, 15);
+  }
+
+  // central scrubber tower landmark
+  const tower = new THREE.Group();
+  cyl(1.1, 1.3, 3.8, 12, 0x3f5550, 0, 1.9, 0, tower);
+  for (let i = 0; i < 5; i++) cyl(1.18, 1.18, 0.08, 12, 0x8a6a3a, 0, 0.45 + i * 0.72, 0, tower);
+  for (let i = 0; i < 6; i++) box(1.6, 0.08, 0.12, 0x596b62, 0, 1.1 + i * 0.4, 0, tower, { rotY: (Math.PI / 3) * i });
+  const towerLight = pointLight(0x8fe0c0, 2.8, 9, 0, 2.6, 0, tower, { decay: 1.4 });
+  addGlow(tower, 0x8fe0c0, 0, 2.8, 0, 1.2, 0.22);
+  tower.position.set(0, 0, -4.4);
+  group.add(tower);
+  colliders.push({ minX: -1.3, maxX: 1.3, minZ: -5.7, maxZ: -3.1 });
+  refs.tower = tower;
+  refs.towerLight = towerLight;
+
+  // entry / checkpoint
+  for (const side of [-1, 1]) {
+    box(0.3, 3.2, 1.2, 0x2b3a34, side * 4.2, 1.6, 12.8, group);
+    colliders.push({ minX: side * 4.2 - 0.2, maxX: side * 4.2 + 0.2, minZ: 12.2, maxZ: 13.4 });
+  }
+  box(9, 0.4, 0.5, 0x2b3a34, 0, 3.9, 12.8, group);
+  plane(3.0, 0.78, 0xffffff, 0, 3.75, 12.55, group, { material: signMaterial("ZARYA", "#ffe08a") });
+  addGlow(group, 0xffd27a, 0, 3.75, 12.3, 1.2, 0.18);
+  // guard post
+  box(1.8, 0.9, 0.8, 0x37453f, -5.6, 0.45, 11.4, group, { material: metalMat });
+  colliders.push({ minX: -6.5, maxX: -4.7, minZ: 11.0, maxZ: 11.8 });
+
+  // market stalls in the plaza
+  for (const [x, z, color] of [[-7.2, 8.5, 0x7a3a24], [7.2, 8.5, 0x2f6f66], [-7.2, 3.4, 0xb8862a], [7.2, 3.4, 0x6b4a2e], [-7.2, -1.0, 0x2f6f66], [7.2, -1.0, 0x7a3a24]]) {
+    box(2.6, 0.75, 1.1, 0x3f2e20, x, 0.38, z, group, { material: woodMat });
+    box(2.9, 0.08, 1.3, color, x, 1.4, z, group, { rotZ: 0.02 });
+    cyl(0.025, 0.025, 2.3, 5, 0x2d241b, x - 1.1, 1.15, z + 0.4, group);
+    cyl(0.025, 0.025, 2.3, 5, 0x2d241b, x + 1.1, 1.15, z + 0.4, group);
+    for (let i = 0; i < 5; i++) {
+      cyl(0.06, 0.06, 0.14, 6, i % 2 ? 0x7d6a3f : 0x8a3a2a, x - 0.7 + i * 0.35, 0.9, z + 0.1, group);
+    }
+  }
+  // string lights and tall lamps
+  for (const [x, z, c] of [[-8, 10, 0xffb765], [8, 10, 0x8fe0c0], [-8, 5, 0xffd27a], [8, 5, 0xff9a4a], [-6, 0, 0x8fe0c0], [6, 0, 0xffb765], [0, -9, 0xffd27a]]) {
+    cyl(0.018, 0.018, 1.1, 5, 0x191d1a, x, H - 1.1, z, group);
+    sphere(0.09, 6, 5, c, x, H - 1.4, z, group, { material: basic(c) });
+    pointLight(c, 2.2, 10, x, H - 1.6, z, group, { decay: 1.45 });
+    addGlow(group, c, x, H - 1.4, z, 0.9, 0.24);
+    addLightShaft(group, c, x, H - 1.4, z, 3.8, 0.8, 0.028);
+  }
+
+  // Vera's raised stall
+  box(4.0, 0.4, 2.8, 0x4a3a2a, 0, 0.2, 6.0, group);
+  box(3.8, 0.86, 0.7, 0x5b4029, 0, 0.88, 5.9, group, { material: woodMat });
+  box(4.0, 0.1, 0.9, 0x7a5a35, 0, 1.34, 5.9, group);
+  for (const side of [-1, 1]) {
+    for (const z of [5.0, 6.8]) box(0.12, 2.0, 0.12, 0x3a2a1a, side * 1.8, 1.0, z, group);
+  }
+  box(4.2, 0.08, 2.8, 0x8a3a24, 0, 2.1, 5.9, group, { rotZ: 0.02 });
+  colliders.push({ minX: -2.1, maxX: 2.1, minZ: 4.8, maxZ: 7.1 });
+  const vera = makeHumanoid({ coat: 0x5a3b2a, pants: 0x1d211e, hair: 0x2a1d14 });
+  vera.position.set(0, 0.4, 6.1);
+  vera.rotation.y = Math.PI;
+  group.add(vera);
+  refs.vera = vera;
+  box(0.17, 0.045, 0.035, 0x1b1c18, 0, 1.44, 0.11, vera);
+  box(0.05, 0.05, 0.02, 0x8caa76, -0.05, 1.44, 0.13, vera, { material: basic(0x8caa76) });
+  box(0.05, 0.05, 0.02, 0x8caa76, 0.05, 1.44, 0.13, vera, { material: basic(0x8caa76) });
+  pointLight(0xffc078, 4.2, 6, 0, 2.1, 7.0, group, { decay: 1.3 });
+  addGlow(group, 0xffc078, 0, 1.9, 6.8, 0.9, 0.2);
+  const shopBeacon = new THREE.Group();
+  cyl(0.19, 0.19, 0.06, 14, 0xc9a04a, 0, 0, 0, shopBeacon, { rotX: Math.PI / 2, material: basic(0xc9a04a) });
+  shopBeacon.add(new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.026, 5, 16), toonMat(0x8d7135)));
+  shopBeacon.position.set(1.55, 1.75, 7.5);
+  shopBeacon.userData.baseY = 1.75;
+  group.add(shopBeacon);
+  addGlow(group, 0xffd27a, 1.55, 1.75, 7.5, 0.9, 0.22);
+  refs.shopBeacon = shopBeacon;
+
+  // hospital wing (left)
+  box(0.04, 0.64, 0.04, 0x8fe0c0, -15.6, 2.55, 2.2, group, { material: basic(0x8fe0c0) });
+  box(0.34, 0.08, 0.04, 0x8fe0c0, -15.6, 2.55, 2.2, group, { material: basic(0x8fe0c0) });
+  box(0.08, 0.34, 0.04, 0x8fe0c0, -15.6, 2.55, 2.2, group, { material: basic(0x8fe0c0) });
+  for (const [x, z] of [[-14, 0.4], [-11.8, 0.4], [-14, 3.8], [-11.8, 3.8]]) {
+    box(1.5, 0.14, 0.8, 0x4a5a52, x, 0.55, z, group);
+    box(0.9, 0.1, 0.46, 0xa9b6a0, x, 0.64, z, group);
+    for (const dx of [-0.65, 0.65]) box(0.08, 0.5, 0.08, 0x2a302c, x + dx, 0.28, z, group);
+  }
+  for (const z of [-0.5, 2.2, 4.9]) {
+    plane(1.4, 0.08, 0xffffff, -9.2, 2.7, z, group, { rotY: Math.PI / 2, material: toonMat(0x9ab0a4, { transparent: true, opacity: 0.7, side: THREE.DoubleSide }) });
+  }
+  box(2.8, 0.08, 0.35, 0x3a2c20, -14.2, 1.5, -1.4, group);
+  for (let i = 0; i < 7; i++) cyl(0.06, 0.06, 0.16, 6, i % 2 ? 0xc9c1aa : 0x8fbf7a, -15.3 + i * 0.38, 1.6, -1.4, group);
+
+  // restaurant (right)
+  for (const z of [-0.4, 2.2, 4.8]) {
+    box(2.8, 0.12, 1.0, 0x6a4a30, 12.4, 0.8, z, group, { material: woodMat });
+    for (const dx of [-1.15, 1.15]) box(0.12, 0.7, 0.12, 0x3a2a1a, 12.4 + dx, 0.4, z, group);
+    for (let i = 0; i < 3; i++) cyl(0.12, 0.13, 0.02, 8, 0xb7ad93, 11.7 + i * 0.7, 0.87, z, group);
+  }
+  cyl(0.38, 0.42, 0.8, 8, 0x3a2a1e, 14.2, 0.4, 2.2, group);
+  cyl(0.34, 0.34, 0.05, 8, 0x7e3a1c, 14.2, 0.82, 2.2, group, { material: basic(0xff7a2a) });
+  pointLight(0xff7a2a, 3.8, 7, 14.2, 1.1, 2.2, group, { decay: 1.4 });
+  addGlow(group, 0xff7a2a, 14.2, 1.0, 2.2, 1.0, 0.22);
+  addLightShaft(group, 0xb8c8b8, 14.2, 1.2, 2.2, 1.3, 0.32, 0.03);
+  for (let i = 0; i < 3; i++) {
+    cyl(0.18, 0.22, 0.07, 8, 0xc9a04a, 8.7, 2.9, 0.2 + i * 1.1, group, { material: basic(0xc9a04a) });
+    cyl(0.12, 0.12, 0.03, 8, 0x6b4a2e, 8.7, 2.87, 0.2 + i * 1.1, group);
+  }
+
+  // residential gallery (left, back)
+  for (const [x, z] of [[-14.2, -6.0], [-14.2, -8.2], [-11.8, -6.0], [-11.8, -8.2]]) {
+    box(1.5, 0.14, 2.0, 0x3f2e20, x, 0.55, z, group);
+    box(1.2, 0.12, 1.7, 0x71745f, x, 0.65, z, group);
+    box(0.9, 0.1, 0.6, 0x8a3a2a, x, 0.72, z, group);
+  }
+  for (const x of [-15, -13]) for (const z of [-9.4, -7.0, -4.6]) box(0.1, 1.4, 0.1, 0x2a1e14, x, 0.7, z, group);
+  for (const [x1, x2, z] of [[-15.4, -9.4, -4.0], [-15.0, -10.0, -9.5]]) {
+    cyl(0.015, 0.015, Math.abs(x2 - x1), 5, 0x3a4a42, (x1 + x2) / 2, 2.55, z, group, { rotZ: Math.PI / 2 });
+    for (let i = 0; i < 5; i++) plane(0.6, 0.5, 0xffffff, x1 + (x2 - x1) * (i / 4), 2.2, z, group, { material: toonMat(i % 2 ? 0x8a3a2a : 0x2e6f66, { side: THREE.DoubleSide }) });
+  }
+
+  // descent / service passage
+  const exit = door(group, 0, -13.2, "DESCENT");
+  plane(3.0, 0.5, 0xffffff, 0, 3.0, -9.8, group, { material: signMaterial("SANCTUARY", "#8fe0c0") });
+  addGlow(group, 0x8fe0c0, 0, 3.0, -9.7, 1.1, 0.16);
+  for (const side of [-1, 1]) {
+    box(0.14, 2.2, 0.14, 0x2b3a34, side * 2.8, 1.1, -12.6, group);
+  }
+  box(6.2, 0.14, 0.18, 0x2b3a34, 0, 2.25, -12.6, group);
+  box(1.8, 0.9, 0.8, 0x37453f, 3.8, 0.45, -11.2, group, { material: metalMat });
+  colliders.push({ minX: 2.8, maxX: 4.8, minZ: -11.7, maxZ: -10.7 });
+
+  // NPCs
+  const npc = (x, z, coat, hair, name, lines, route = null, speed = 0.5, child = false) => {
+    const person = makeHumanoid({ child, coat, pants: 0x1b211d, hair });
+    person.position.set(x, 0, z);
+    group.add(person);
+    npcs.push({ group: person, name, lines, route, speed, idx: 0, nextTalk: 0 });
+  };
+  npc(-11.0, 2.2, 0xa9b6a0, 0x2a2119, "DOCTOR", ["Quarantine is full. Keep moving.", "We can't take another patient. I'm sorry."], [[-11.0, 2.2], [-13.2, 3.5], [-11.0, 2.2]], 0.18);
+  npc(13.6, 2.8, 0x7a4a2a, 0x241a12, "COOK", ["The stew is good today. Mostly.", "Sanctuary pays in clean water. Imagine that."], [[13.6, 2.8], [12.0, 1.0], [13.6, 2.8]], 0.16);
+  npc(-12.0, -6.5, 0x4a3a2a, 0x2b1a12, "RESIDENT", ["They promised us a train. There is no train.", "You hear the music? It plays all night now."], [[-12.0, -6.5], [-13.4, -8.2], [-12.0, -6.5]], 0.16);
+  npc(-8.8, -7.8, 0x8a7135, 0x3b2418, "CHILD", ["My sister went to Sanctuary.", "The radio says her name sometimes."], null, 0, true);
+  npc(9.5, -6.8, 0x39423a, 0x1e1711, "GUARD", ["Upper gallery is closed.", "Vera's stall is down the plaza. Don't cause trouble."], [[9.5, -6.8], [9.0, -3.0], [10.8, -1.2]], 0.42);
+  npc(-4.8, 8.0, 0x5a3b2a, 0x241a12, "TRADER", ["Filters, batteries, clean water.", "Everyone's buying air. Nobody's selling."], [[-4.8, 8.0], [-5.2, 10.0], [-4.0, 10.8]], 0.22);
+  npc(4.8, 8.0, 0x2f6f66, 0x241a12, "TRADER", ["You look like you came up from the vents.", "Wash the dust off before Vera sees you."], [[4.8, 8.0], [5.2, 10.0], [4.0, 10.8]], 0.22);
+  npc(-1.6, 2.4, 0x35443a, 0x1b211d, "RUNNER", ["The lower gate is sealed.", "If you're going down, take a filter."], [[-1.6, 2.4], [4.2, -0.5], [2.8, -3.6], [-4.2, -2.2]], 0.62);
+  npc(2.0, 10.2, 0x4a3a2a, 0x2a2119, "PORTER", ["Move. Medical supplies.", "Hospital's always short. Always."], [[2.0, 10.2], [-3.0, 9.4], [-3.0, 4.6]], 0.5);
+  npc(0.8, 4.8, 0x5a3b2a, 0x2a1d14, "SHOPPER", ["Vera buys names. Did you know that?", "Don't ask what she does with them."], [[0.8, 4.8], [2.6, 3.4], [1.0, 1.0]], 0.3);
+  npc(-4.0, -9.4, 0x4a5a4a, 0x241b14, "WORKER", ["The scrubber tower is the only thing keeping us alive.", "It sings at night. Listen."], [[-4.0, -9.4], [-2.0, -8.4], [-4.0, -9.4]], 0.18);
+  npc(6.0, -4.8, 0x7a3a24, 0x2a1a12, "VENDOR", ["Fresh food. Real food.", "Sanctuary ration cards don't work here."], [[6.0, -4.8], [8.0, -6.0], [6.0, -4.8]], 0.14);
+  refs.npcs = npcs;
+
+  // crates / barrels / clutter
+  for (const [x, z, s] of [[-5.4, 12.2, 0.7], [5.4, 12.2, 0.62], [-5.4, 0.6, 0.6], [5.4, 0.6, 0.7], [-5.2, -5.4, 0.65], [5.2, -5.4, 0.6]]) {
+    box(s, s, s, 0x6a4a2c, x, s / 2, z, group);
+    box(s * 0.9, 0.08, s * 0.9, 0x3a2a1a, x, s * 0.8, z, group);
+    colliders.push({ minX: x - s / 2, maxX: x + s / 2, minZ: z - s / 2, maxZ: z + s / 2 });
+  }
+  for (const [x, z] of [[-5.6, 10.0], [5.6, 10.0]]) {
+    cyl(0.3, 0.3, 0.85, 8, 0x8a5a2a, x, 0.43, z, group);
+    cyl(0.31, 0.31, 0.06, 8, 0x3a2a1a, x, 0.16, z, group);
+    colliders.push({ minX: x - 0.3, maxX: x + 0.3, minZ: z - 0.3, maxZ: z + 0.3 });
+  }
+
+  addDust(group, 80, 28, 0x9aa8a0);
+  group.userData.refs = refs;
+  return {
+    group,
+    colliders,
+    refs: { ...refs, exit },
+    npcs,
+    spawn: new THREE.Vector3(0, 0, 13.8),
+    spawnYaw: 0,
+    bounds: { minX: -15.2, maxX: 15.2, minZ: -14.2, maxZ: 14.2 },
+    interactables: [
+      { kind: "shop", pos: vera.position.clone(), radius: 2.8, prompt: "E — TRADE WITH VERA" },
+      { kind: "exit", pos: exit.pos, radius: 2.6, prompt: "E — DESCEND", next: "warren" },
+    ],
+    triggers: [
+      { kind: "vision", pos: vec(0, 0, 1.2), radius: 2.4, visionId: 3, once: true },
+    ],
+    fog: { color: 0x0b1814, density: 0.022 },
+    ambient: { color: 0x7a9a8a, intensity: 0.9 },
+    background: 0x06120f,
+    name: "zarya",
   };
 }
 

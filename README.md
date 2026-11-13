@@ -7,7 +7,7 @@ Playable in the browser. No install, no build step.
 
 ## Play
 
-**https://simonovicj240712-crypto.github.io/intake/?v=14**
+**https://simonovicj240712-crypto.github.io/intake/?v=27**
 
 Or run locally with any static file server. For example, with Java 18+:
 
@@ -24,11 +24,11 @@ Then open <http://127.0.0.1:8000/>.
 
 This is the **complete playable campaign pass** — a condensed version of the full 3–3.5 hour design. All major story beats are in:
 
-- **Prologue — The Last Dinner.** A playable family dinner, the alarm, the Tenant in the corner, the first flashback, the Broodmother under the floor, Tokar's rescue.
-- **Kryl Station.** Tokar, the first pistol, and the descent.
+- **Prologue — The Last Night in the Bunker.** A Metro-style bunker home, the family dinner, the city through the window, the spinning ceiling alarm, the Broodmother attack, Tokar's rescue, and the armored-car ride through the ruins.
+- **Kryl Station.** An expanded survivor market with bunk rooms, a clinic, a canteen, a shrine, wandering NPCs, Tokar, the first pistol, and the descent.
 - **Act I — The Descent.** First vent, body looting, and the first Crawler jumpscare.
 - **The Dead Rail.** Open rail yard, ruined skyline, scavengers, rats, the gate to Zarya, and the Passenger Car vision.
-- **Zarya Station.** Vera's shop, the shotgun and rifle, ammo, medkits, and the lower-platform vision.
+- **Zarya Station.** An expanded trade city with a hospital, restaurant, residential gallery, market plaza, Vera's shop, the shotgun and rifle, and the lower-platform vision.
 - **The Deep.** Branching vent mazes: the Warren (fuses), the Flooded Duct (valves), the Dead Fan, and the safe room.
 - **The Lair.** A larger maze, the valves, the watchers, and the Mirror vision.
 - **The Last Crawl.** A forced-crawl vent run with a Tenant sighting, a final Crawler, and the Sanctuary hatch.
@@ -44,7 +44,12 @@ The current pass also includes:
 - **Visual-only interaction** — pickups, bodies, notes, fuses, valves, consoles, radios, and unlocked doors trigger automatically on approach. Doors use three progress pips and a red/green status lamp instead of text. Vera's shop is marked by a floating coin and opened with **E**.
 - **Pictogram signage** — station, rail, vent, hatch, fan, hazard, shelter, lock, air, water, and count signs are drawn as icons, never words.
 - **Show-don't-tell presentation** — narration subtitles are removed. Speech appears only for character dialogue, with clickable/Enter-advanced conversation and a player response.
-- **Scene overhaul** — Kryl is a lived-in station market with a city window and station sign; the Dead Rail has a gantry, containers, signal masts and sleepers; the Fan chamber has a huge fan housing, catwalk, console and floodlights; the safe room has a bunk, desk, shelves and stove; the Last Crawl has low bulkheads, support frames and wall lights; the Nest has an organic mound, pulsing heart and hanging pods; the prologue dining room has a sideboard, rug, curtains, clock and pictures.
+- **A new wordless prologue** — a Metro-style bunker home, a living city seen through the reinforced window, a spinning ceiling alarm, the Broodmother attack, Tokar’s rescue, and an armored-car ride through the ruined city.
+- **Expanded city hubs** — Kryl and Zarya are now multi-room districts with markets, bunk rooms, clinics, canteens, shrines, guard posts, wandering NPCs, and short ambient dialogue.
+- **Real recorded audio** — a bundled CC0/UGC sound set for the Crawler scream, monster growls, gunshots, rat squeals, footsteps, breathing, doors, city crowd, calm jazz, and vent ambience, with synthesized fallbacks.
+- **One-shot vermin** — normal rats are standardized brown versions and die from one pistol round; the pale Crawler can be dropped with one shot during the grab.
+- **City jazz and vent dread** — Kryl and Zarya run calm, spatial jazz loops under crowd noise; the vents replace them with a low hum, breathing, and metal creaks.
+- **Scene overhaul** — Kryl is a lived-in station market with a city window and station sign; the Dead Rail has a gantry, containers, signal masts and sleepers; the Fan chamber has a huge fan housing, catwalk, console and floodlights; the safe room has a bunk, desk, shelves and stove; the Last Crawl has low bulkheads, support frames and wall lights; the Nest has an organic mound, pulsing heart and hanging pods.
 - **A title-screen diorama** behind a wordless brand-and-play title.
 - **An icon-only HUD** for health, medkits, MGR, logs, and ammo.
 - **Aim-down-sights**, hit markers, enemy line-of-sight, spawn grace, knockback, and melee damage.
@@ -89,7 +94,7 @@ These are development shortcuts and do not affect normal play:
 
 - This is a condensed prototype, not the full 3–3.5 hour design.
 - Pointer lock must be granted by the browser. Starting the game with the play glyph requests it immediately; if the browser dismisses it, click the screen once. There is deliberately no on-screen look hint.
-- If the play glyph appears to do nothing, wait up to five seconds: a hidden boot status records engine errors in the console, and the glyph pulses red on failure. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=14` clears old cached builds.
+- If the play glyph appears to do nothing, wait up to five seconds: a hidden boot status records engine errors in the console, and the glyph pulses red on failure. A hard refresh (`Ctrl+F5`) or opening the live link with `?v=27` clears old cached builds.
 - Some set dressing and creature animation still reads as placeholder; the maze layout is procedurally generated on every load.
 - Automated tests cover transitions, auto-interaction, shop, death/retry, and the ending, but not trusted user pointer-lock input.
 
@@ -99,7 +104,7 @@ These are development shortcuts and do not affect normal play:
 - Vanilla ES modules
 - No build step, no bundler, no npm
 - Flat-shaded low-poly geometry
-- Procedural Web Audio sound
+- Procedural Web Audio sound with bundled CC0 recordings and synthesized fallbacks
 - GitHub Pages
 
 ## Visual direction

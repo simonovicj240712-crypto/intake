@@ -538,17 +538,17 @@ export function makeTenant(height = 2.45) {
 
 export function makeRat({ scale = 1, brood = false } = {}) {
   const g = new THREE.Group();
-  const bodyColor = brood ? 0x4f4033 : 0x4a3a2c;
+  const bodyColor = brood ? 0x4a3524 : 0x6b4a2c;
   const body = sphere(0.38, 8, 6, bodyColor, 0, 0.42, 0, g, { sx: 1.5, sy: 0.85, sz: 0.85 });
   body.name = "body";
-  const head = sphere(0.24, 8, 6, brood ? 0x604e3e : 0x5a4838, 0.52, 0.46, 0, g, { sx: 1.15, sy: 0.9, sz: 0.9 });
+  const head = sphere(0.24, 8, 6, brood ? 0x563e2a : 0x7a5638, 0.52, 0.46, 0, g, { sx: 1.15, sy: 0.9, sz: 0.9 });
   head.name = "head";
   // ears
   for (const side of [-1, 1]) {
-    cyl(0.1, 0.12, 0.03, 6, 0x2b211a, 0.56, 0.67, side * 0.14, g, { rotX: Math.PI / 2 });
+    cyl(0.1, 0.12, 0.03, 6, 0x3a2818, 0.56, 0.67, side * 0.14, g, { rotX: Math.PI / 2 });
   }
   // snout + teeth
-  box(0.18, 0.12, 0.14, 0x2a1f18, 0.73, 0.43, 0, g);
+  box(0.18, 0.12, 0.14, 0x2f2116, 0.73, 0.43, 0, g);
   for (const side of [-1, 1]) {
     cyl(0.01, 0.025, 0.09, 5, 0xd9d0b0, 0.8, 0.36, side * 0.045, g, { rotX: Math.PI });
   }
@@ -559,19 +559,19 @@ export function makeRat({ scale = 1, brood = false } = {}) {
   sphere(0.012, 5, 4, 0xd06a3a, 0.7, 0.51, -0.12, g, { material: basic(0xd06a3a) });
   // exposed spine and ribs
   for (let i = 0; i < 4; i++) {
-    box(0.05, 0.08, 0.08, 0x6a5743, -0.18 + i * 0.14, 0.72, 0, g);
+    box(0.05, 0.08, 0.08, 0x8a6a45, -0.18 + i * 0.14, 0.72, 0, g);
   }
   for (const side of [-1, 1]) {
     for (let i = 0; i < 3; i++) {
-      box(0.03, 0.12, 0.03, 0x8a7256, -0.06 + i * 0.16, 0.5, side * 0.3, g, { rotZ: side * 0.5 });
+      box(0.03, 0.12, 0.03, 0x9a7a52, -0.06 + i * 0.16, 0.5, side * 0.3, g, { rotZ: side * 0.5 });
     }
   }
   // tail
-  cyl(0.025, 0.01, 0.9, 5, 0x2a1f18, -0.7, 0.33, 0, g, { rotZ: -0.3, rotX: 0.1 });
+  cyl(0.025, 0.01, 0.9, 5, 0x3a2818, -0.7, 0.33, 0, g, { rotZ: -0.3, rotX: 0.1 });
   // legs
   for (const side of [-1, 1]) {
     for (const front of [-0.2, 0.28]) {
-      box(0.09, 0.3, 0.09, 0x2a1f18, front, 0.15, side * 0.18, g);
+      box(0.09, 0.3, 0.09, 0x3a2818, front, 0.15, side * 0.18, g);
     }
   }
   g.scale.setScalar(scale);
@@ -718,7 +718,7 @@ export function makeScavenger({ coat = 0x2a2b25, gun = true } = {}) {
   return g;
 }
 
-function addDust(parent, count = 40, area = 6, color = 0x7c8b7e) {
+export function addDust(parent, count = 40, area = 6, color = 0x7c8b7e) {
   const geo = new THREE.BufferGeometry();
   const arr = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
@@ -986,7 +986,373 @@ export function buildCrawlspace() {
   return { group, refs };
 }
 
-export function buildKryl() {
+export function buildPrologueBunker() {
+  const group = new THREE.Group();
+  const refs = {};
+  const colliders = [];
+
+  const concreteMat = toonMat(0x3a342b, { map: surfaceTexture("concrete", { repeat: [4, 2] }) });
+  const metalMat = toonMat(0x2a332f, { map: surfaceTexture("metal", { repeat: [5, 2] }) });
+  const floorMat = toonMat(0x2a241c, { map: surfaceTexture("concrete", { repeat: [5, 4] }) });
+
+  // bunker shell
+  box(10, 0.2, 8, 0x2a241c, 0, -0.1, 0, group, { material: floorMat });
+  box(4.6, 3.2, 0.24, 0x3a342b, -2.7, 1.6, -4, group, { material: concreteMat });
+  box(1.8, 3.2, 0.24, 0x3a342b, 4.1, 1.6, -4, group, { material: concreteMat });
+  box(3.6, 0.35, 0.24, 0x3a342b, 1.4, 3.025, -4, group, { material: concreteMat });
+  box(3.6, 0.85, 0.24, 0x3a342b, 1.4, 0.425, -4, group, { material: concreteMat });
+  box(10, 3.2, 0.24, 0x2a332f, 0, 1.6, 4, group, { material: metalMat });
+  for (const side of [-1, 1]) {
+    box(0.24, 3.2, 8, 0x2a332f, side * 5, 1.6, 0, group, { material: metalMat });
+    colliders.push({ minX: side * 5 - 0.2, maxX: side * 5 + 0.2, minZ: -4, maxZ: 4 });
+  }
+  colliders.push({ minX: -5, maxX: 5, minZ: -4.2, maxZ: -3.8 });
+  colliders.push({ minX: -5, maxX: 5, minZ: 3.8, maxZ: 4.2 });
+  box(10, 0.18, 8, 0x171b18, 0, 3.1, 0, group);
+
+  // ribs, pipes, cables
+  for (const x of [-3.8, -1.3, 1.3, 3.8]) {
+    box(0.12, 3.0, 0.14, 0x202823, x, 1.5, -3.86, group);
+  }
+  for (const side of [-1, 1]) {
+    cyl(0.06, 0.06, 7.4, 6, 0x3f5a50, side * 4.82, 2.56, 0, group, { rotX: Math.PI / 2 });
+    cyl(0.045, 0.045, 7.4, 6, 0x8a4a2a, side * 4.68, 2.34, 0, group, { rotX: Math.PI / 2 });
+  }
+  for (const [x, y, z, len, rot] of [[-4.3, 2.2, 2.2, 2.8, 0.3], [4.1, 1.7, -1.4, 2.2, -0.2], [0.4, 2.94, 0.2, 3.3, Math.PI / 2]]) {
+    cyl(0.018, 0.018, len, 4, 0x171b18, x, y, z, group, { rotZ: rot });
+  }
+
+  // table and family
+  box(2.6, 0.12, 1.25, 0x6b4a2e, 0, 0.76, 0.55, group);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    box(0.11, 0.74, 0.11, 0x3a2618, sx * 1.12, 0.37, 0.55 + sz * 0.46, group);
+  }
+  for (let i = 0; i < 4; i++) {
+    const x = i < 2 ? -0.85 : 0.85;
+    const z = i % 2 === 0 ? 0.25 : 0.82;
+    cyl(0.18, 0.2, 0.025, 10, 0xb7ad93, x, 0.84, z, group);
+    cyl(0.09, 0.11, 0.02, 10, 0x4b3a24, x, 0.86, z, group);
+  }
+  cyl(0.26, 0.28, 0.2, 10, 0x5a4230, 0, 0.91, 0.5, group);
+  sphere(0.11, 6, 5, 0x7b5a31, 0, 1.02, 0.5, group, { sy: 0.55 });
+  // red ribbon: the personal totem
+  box(0.36, 0.018, 0.06, 0x9e2f28, -0.72, 0.9, 0.72, group, { rotY: 0.35 });
+  box(0.18, 0.018, 0.05, 0x9e2f28, -0.5, 0.91, 0.82, group, { rotY: -0.5 });
+  refs.ribbon = group.children[group.children.length - 2];
+
+  const mom = makeHumanoid({ coat: 0x7a3d28, pants: 0x26221c, hair: 0x2b1a12 });
+  mom.position.set(-1.15, 0, 0.0);
+  mom.rotation.y = 0;
+  group.add(mom);
+  refs.mom = mom;
+  const dad = makeHumanoid({ coat: 0x2d423a, pants: 0x1b211e, hair: 0x2c2119 });
+  dad.position.set(1.15, 0, 0.0);
+  dad.rotation.y = 0;
+  group.add(dad);
+  refs.dad = dad;
+  const sister = makeHumanoid({ child: true, coat: 0x8a7135, pants: 0x2d2a20, hair: 0x3b2418 });
+  sister.position.set(-0.95, 0, 1.9);
+  sister.rotation.y = Math.PI;
+  group.add(sister);
+  refs.sister = sister;
+
+  // bunk beds on left
+  box(1.0, 0.14, 2.4, 0x3f2e20, -4.05, 0.52, -1.2, group);
+  box(1.0, 0.14, 2.4, 0x3f2e20, -4.05, 1.34, -1.2, group);
+  for (const [x, z] of [[-4.4, -2.2], [-3.7, -2.2], [-4.4, -0.2], [-3.7, -0.2]]) {
+    box(0.1, 1.35, 0.1, 0x2a1e14, x, 0.68, z, group);
+  }
+  box(0.9, 0.16, 1.0, 0x71745f, -4.05, 0.62, -1.8, group);
+  box(0.9, 0.16, 1.0, 0x71745f, -4.05, 1.44, -0.7, group);
+  box(0.9, 0.08, 0.7, 0x8a3a2a, -4.05, 0.7, -1.0, group);
+  colliders.push({ minX: -4.65, maxX: -3.55, minZ: -2.5, maxZ: 0.1 });
+
+  // shelves, radio, family photo, child's drawing, suitcase
+  for (const y of [1.25, 1.9]) {
+    box(2.6, 0.07, 0.35, 0x3a2c20, 3.5, y, -3.55, group);
+    for (let i = 0; i < 7; i++) {
+      const c = i % 3 === 0 ? 0x8a3a2a : i % 3 === 1 ? 0x2e5e56 : 0xc9a04a;
+      cyl(0.06, 0.06, 0.16, 6, c, 2.5 + i * 0.3, y + 0.1, -3.55, group);
+    }
+  }
+  box(0.5, 0.32, 0.35, 0x2a302c, 3.55, 1.12, -3.55, group);
+  box(0.2, 0.1, 0.03, 0x8fbf7a, 3.55, 1.18, -3.36, group, { material: basic(0x8fbf7a) });
+  cyl(0.018, 0.018, 0.45, 5, 0x1a211d, 3.72, 1.42, -3.55, group, { rotZ: -0.3 });
+  // family photo
+  box(0.5, 0.36, 0.03, 0x3a2618, 2.55, 2.02, -3.53, group);
+  plane(0.4, 0.28, 0xffffff, 2.55, 2.02, -3.5, group, { material: toonMat(0x6b7a55) });
+  // child's drawing of Sanctuary: city + big heart
+  const draw = new THREE.Group();
+  box(0.46, 0.34, 0.02, 0xd8c9a3, 0, 0, 0, draw);
+  for (let i = 0; i < 4; i++) box(0.06, 0.1 + i * 0.02, 0.01, 0x2a3530, -0.14 + i * 0.09, 0.02, 0.02, draw);
+  sphere(0.05, 6, 5, 0x9e2f28, 0.13, 0.08, 0.02, draw, { material: basic(0x9e2f28) });
+  draw.position.set(-2.8, 2.0, -3.52);
+  draw.rotation.z = -0.05;
+  group.add(draw);
+  refs.drawing = draw;
+  // suitcase
+  box(0.7, 0.42, 0.4, 0x4a3a2a, 4.0, 0.21, 2.8, group);
+  box(0.72, 0.04, 0.42, 0x2a1e14, 4.0, 0.42, 2.8, group);
+  box(0.12, 0.08, 0.04, 0xc8a24a, 4.0, 0.44, 2.58, group);
+
+  // hanging lamp
+  cyl(0.025, 0.025, 0.45, 5, 0x191d1a, 0, 2.78, 0.55, group);
+  box(0.46, 0.12, 0.46, 0x2a302c, 0, 2.55, 0.55, group);
+  box(0.36, 0.05, 0.36, 0xffc078, 0, 2.48, 0.55, group, { material: basic(0xffc078) });
+  const roomLight = pointLight(0xffc078, 4.6, 8, 0, 2.35, 0.55, group, { decay: 1.25 });
+  refs.roomLight = roomLight;
+  addGlow(group, 0xffc078, 0, 2.48, 0.55, 1.1, 0.28);
+  addLightShaft(group, 0xffc078, 0, 2.5, 0.55, 2.4, 1.1, 0.04);
+
+  // ceiling alarm
+  const alarm = new THREE.Group();
+  cyl(0.22, 0.26, 0.16, 8, 0x1b2420, 0, 0, 0, alarm);
+  const rotor = new THREE.Group();
+  box(0.34, 0.08, 0.12, 0x8a2a1a, 0, 0.08, 0, rotor);
+  box(0.12, 0.08, 0.34, 0x8a2a1a, 0, 0.08, 0, rotor);
+  sphere(0.09, 6, 5, 0xff3a1a, 0, 0.12, 0.17, rotor, { material: basic(0xff3a1a) });
+  const alarmLight = pointLight(0xff1a0a, 0, 9, 0, 0.1, 0.2, rotor, { decay: 1.2 });
+  rotor.add(alarmLight);
+  alarm.add(rotor);
+  alarm.position.set(-1.8, 2.9, 0.9);
+  alarm.scale.setScalar(1.25);
+  group.add(alarm);
+  refs.alarm = alarm;
+  refs.alarmRotor = rotor;
+  refs.alarmLight = alarmLight;
+  refs.alarmGlow = addGlow(group, 0xff1a0a, -1.8, 2.9, 0.9, 2.2, 0.35);
+  refs.alarmGlow.visible = false;
+
+  // floor hatch
+  const hatch = new THREE.Group();
+  box(1.5, 0.07, 1.0, 0x4a3826, 0, 0, 0, hatch);
+  for (const x of [-0.45, 0.45]) box(0.18, 0.02, 0.08, 0x1b2420, x, 0.05, 0, hatch);
+  hatch.position.set(0.55, 0.02, 2.45);
+  group.add(hatch);
+  refs.hatch = hatch;
+  addGlow(group, 0xffc078, 0.55, 0.12, 2.45, 0.65, 0.0);
+  refs.hatchLight = pointLight(0xffc078, 0, 3.2, 0.55, 0.35, 2.45, group, { decay: 1.5 });
+
+  // hidden Broodmother above the ceiling / behind hatch
+  const brood = makeRat({ scale: 2.05, brood: true });
+  brood.position.set(0.3, 2.25, 1.7);
+  brood.rotation.y = -0.4;
+  brood.rotation.z = Math.PI * 0.92;
+  brood.visible = false;
+  group.add(brood);
+  refs.brood = brood;
+
+  // Tokar waits outside the room
+  const tokar = makeHumanoid({ coat: 0x4b3a2b, pants: 0x20231f, hair: 0x2a2119 });
+  tokar.position.set(4.2, 0, 2.5);
+  tokar.rotation.y = -1.7;
+  tokar.visible = false;
+  group.add(tokar);
+  refs.tokar = tokar;
+
+  // reinforced window to the old city
+  box(3.7, 0.12, 0.14, 0x111614, 1.4, 2.84, -3.88, group);
+  box(3.7, 0.12, 0.14, 0x111614, 1.4, 0.86, -3.88, group);
+  box(0.12, 2.1, 0.14, 0x111614, -0.34, 1.85, -3.88, group);
+  box(0.12, 2.1, 0.14, 0x111614, 3.14, 1.85, -3.88, group);
+  for (let i = 0; i < 2; i++) {
+    box(3.5, 0.06, 0.12, 0x4a5a52, 1.4, 1.5 + i * 0.7, -3.8, group);
+  }
+  for (let i = 0; i < 3; i++) {
+    box(0.06, 1.85, 0.12, 0x3a4a42, 0.4 + i * 1.0, 1.85, -3.8, group);
+  }
+  const windowGlow = pointLight(0x6fa0a0, 1.4, 6, 1.4, 1.8, -3.4, group, { decay: 1.5 });
+  refs.windowGlow = windowGlow;
+
+  // exterior diorama: a slice of Old Kryl visible through the window
+  const exterior = new THREE.Group();
+  exterior.position.set(0, 0, -5.6);
+  const people = [];
+  const extFloor = toonMat(0x22251f, { map: surfaceTexture("concrete", { repeat: [8, 8] }) });
+  box(26, 0.2, 22, 0x22251f, 0, -0.1, -10, exterior, { material: extFloor });
+  box(26, 4.2, 0.3, 0x1a2420, 0, 2.1, -21, exterior);
+  for (const side of [-1, 1]) box(0.3, 4.2, 22, 0x1d2823, side * 13, 2.1, -10, exterior);
+  // stacked bunker homes
+  for (const [x, z, w, h, color] of [[-8, -8, 3.0, 2.4, 0x3a2a20], [-4.2, -10, 2.6, 2.0, 0x29332c], [6.5, -8.5, 3.2, 2.6, 0x3b2b22], [9.5, -12, 2.4, 2.2, 0x26342e], [-1.2, -14, 3.4, 2.8, 0x332a20]]) {
+    box(w, h, 2.4, color, x, h / 2, z, exterior);
+    box(w + 0.2, 0.12, 2.6, 0x151d19, x, h, z, exterior);
+    for (let i = 0; i < 3; i++) {
+      box(0.35, 0.45, 0.04, 0xffb765, x - w / 2 + 0.4 + i * 0.8, h * 0.58, z + 1.22, exterior, { material: basic(0xffb765) });
+    }
+  }
+  // walkway and rail
+  box(22, 0.12, 2.0, 0x3a4641, 0, 1.35, -5.5, exterior);
+  for (let x = -10; x <= 10; x += 2.4) {
+    box(0.08, 1.1, 0.08, 0x4a5a52, x, 1.95, -4.55, exterior);
+  }
+  box(22, 0.08, 0.08, 0x4a5a52, 0, 2.5, -4.55, exterior);
+  // foreground homes directly outside the bunker window
+  for (const [x, z, w, h, color] of [[-2.6, -2.8, 3.4, 2.9, 0x4a3828], [1.2, -3.0, 3.0, 2.5, 0x35433a], [4.6, -2.7, 2.6, 2.7, 0x3c3025]]) {
+    box(w, h, 2.0, color, x, h / 2, z, exterior);
+    box(w + 0.2, 0.12, 2.2, 0x151d19, x, h, z, exterior);
+    for (let i = 0; i < 3; i++) {
+      box(0.32, 0.4, 0.05, 0xffb765, x - w / 2 + 0.45 + i * 0.9, h * 0.6, z + 1.02, exterior, { material: basic(0xffb765) });
+    }
+    for (let i = 0; i < 2; i++) {
+      box(0.6, 0.7, 0.05, 0x101613, x - w / 2 + 0.7 + i * 0.8, h * 0.25, z + 1.02, exterior);
+    }
+  }
+  pointLight(0xffc078, 5.2, 12, 1.2, 2.6, -5.0, exterior, { decay: 1.25 });
+  addGlow(exterior, 0xffc078, 1.2, 2.4, -5.0, 1.3, 0.24);
+  addLightShaft(exterior, 0xffc078, 1.2, 2.4, -5.0, 2.4, 1.1, 0.035);
+  // a few close silhouettes so the window reads as a living street
+  for (const [x, z, ry] of [[-0.4, -1.9, 0.4], [2.2, -2.1, -0.6], [4.0, -1.8, 2.8], [1.3, -0.9, 2.9]]) {
+    const p = makeHumanoid({ coat: 0x4a3a2a, pants: 0x1b211d, hair: 0x241a12 });
+    p.position.set(x, 0, z);
+    p.rotation.y = ry;
+    exterior.add(p);
+    people.push(p);
+  }
+  sphere(0.08, 6, 5, 0xffb765, 1.2, 2.55, -1.2, exterior, { material: basic(0xffb765) });
+  pointLight(0xffb765, 3.4, 9, 1.2, 2.4, -1.2, exterior, { decay: 1.4 });
+  addGlow(exterior, 0xffb765, 1.2, 2.5, -1.2, 0.8, 0.24);
+  // market stalls / hanging cloth
+  for (const [x, z, c] of [[-4, -6.2, 0x7a3a24], [3.6, -6.4, 0x2f6f66], [8, -5.8, 0xb8862a]]) {
+    box(2.4, 0.7, 1.0, 0x3f2e20, x, 0.35, z, exterior);
+    box(2.7, 0.08, 1.3, c, x, 1.35, z, exterior, { rotZ: 0.03 });
+    cyl(0.025, 0.025, 2.1, 5, 0x2d241b, x - 1.0, 1.0, z + 0.4, exterior);
+    cyl(0.025, 0.025, 2.1, 5, 0x2d241b, x + 1.0, 1.0, z + 0.4, exterior);
+  }
+  // warm lights over the settlement
+  for (const [x, y, z, c] of [[-7, 3.0, -7.0, 0xffb765], [-1, 3.3, -9.0, 0xffd27a], [6, 3.0, -6.8, 0xff9a4a], [10, 3.2, -11, 0x8fe0c0]]) {
+    sphere(0.08, 6, 5, c, x, y, z, exterior, { material: basic(c) });
+    pointLight(c, 1.8, 8, x, y, z, exterior, { decay: 1.4 });
+    addGlow(exterior, c, x, y, z, 0.6, 0.22);
+    addLightShaft(exterior, c, x, y, z, y, 0.55, 0.03);
+  }
+  // people in the street
+  const peopleSpots = [
+    [-6.0, -5.8, 0.9], [-2.2, -7.0, -0.4], [2.8, -5.4, 2.2],
+    [7.2, -7.4, -0.8], [-8.0, -11.5, 1.8], [4.2, -12.0, 0.2],
+  ];
+  for (const [x, z, ry] of peopleSpots) {
+    const p = makeHumanoid({ coat: Math.random() < 0.5 ? 0x4a3a2a : 0x35443a, pants: 0x1b211d, hair: 0x241a12 });
+    p.position.set(x, 0, z);
+    p.rotation.y = ry;
+    exterior.add(p);
+    people.push(p);
+  }
+  refs.exteriorPeople = people;
+  // monster running through the settlement
+  const extMonster = makeRat({ scale: 1.3 });
+  extMonster.position.set(-9, 0, -11);
+  extMonster.rotation.y = 1.0;
+  exterior.add(extMonster);
+  refs.exteriorMonster = extMonster;
+  group.add(exterior);
+  refs.exterior = exterior;
+
+  addDust(group, 40, 8, 0x9a8a70);
+  addDust(exterior, 28, 20, 0x8a7a62);
+  group.userData.refs = refs;
+  return { group, refs };
+}
+
+export function buildCarRide() {
+  const group = new THREE.Group();
+  const refs = {};
+
+  // cabin shell
+  box(2.1, 0.12, 3.4, 0x1b1c19, 0, 0.0, 0, group);
+  box(2.1, 0.1, 3.4, 0x121715, 0, 1.72, 0, group);
+  box(2.1, 1.1, 0.16, 0x222b27, 0, 1.0, 1.7, group); // rear bulkhead
+  for (const side of [-1, 1]) {
+    box(0.16, 1.3, 3.2, 0x26312c, side * 1.05, 0.92, 0, group);
+    box(0.1, 0.8, 0.1, 0x141a17, side * 0.95, 1.2, -1.55, group);
+  }
+  // dashboard and windshield
+  box(2.0, 0.24, 0.45, 0x2a332e, 0, 0.85, -1.35, group);
+  box(2.0, 0.06, 0.52, 0x1a211d, 0, 0.98, -1.34, group);
+  for (let i = 0; i < 5; i++) {
+    sphere(0.035, 6, 5, i % 2 ? 0xffb765 : 0xff3a1a, -0.62 + i * 0.31, 0.9, -1.1, group, { material: basic(i % 2 ? 0xffb765 : 0xff3a1a) });
+  }
+  box(2.0, 0.08, 0.08, 0x3a4a42, 0, 1.52, -1.55, group);
+  box(0.08, 1.1, 0.08, 0x3a4a42, -0.98, 1.0, -1.55, group);
+  box(0.08, 1.1, 0.08, 0x3a4a42, 0.98, 1.0, -1.55, group);
+  // seats
+  box(0.58, 0.1, 0.6, 0x3a2a1a, -0.48, 0.42, -0.2, group);
+  box(0.58, 0.6, 0.12, 0x3a2a1a, -0.48, 0.68, 0.06, group);
+  box(0.5, 0.08, 0.42, 0x3a2a1a, 0.48, 0.34, 0.24, group);
+  // steering wheel
+  const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.03, 5, 14), toonMat(0x1b2420));
+  wheel.position.set(-0.48, 0.82, -1.08);
+  wheel.rotation.x = 0.28;
+  group.add(wheel);
+  // Tokar at the wheel
+  const tokar = makeHumanoid({ coat: 0x4b3a2b, pants: 0x20231f, hair: 0x2a2119 });
+  tokar.position.set(-0.52, 0.12, -0.98);
+  tokar.rotation.y = 0.02;
+  tokar.scale.setScalar(0.8);
+  group.add(tokar);
+  refs.tokar = tokar;
+  // red cabin light + green dash glow
+  const cabinLight = pointLight(0xff4a22, 2.6, 3.0, 0.2, 1.55, 0.4, group, { decay: 1.7 });
+  refs.cabinLight = cabinLight;
+  addGlow(group, 0xff4a22, 0.2, 1.55, 0.4, 0.7, 0.18);
+  pointLight(0x8fe0c0, 0.8, 2.0, -0.3, 0.95, -1.15, group, { decay: 1.8 });
+  // cold city light through the windshield
+  pointLight(0x6f9aaa, 4.0, 34, 0, 3.0, -11, group, { decay: 1.35 });
+  addGlow(group, 0x6f9aaa, 0, 2.0, -8, 2.4, 0.12);
+  addLightShaft(group, 0x8fb8c8, 0, 3.0, -6, 3.0, 1.6, 0.025);
+
+  // ruined city beyond the windshield
+  const city = new THREE.Group();
+  const ruins = new THREE.Group();
+  city.add(ruins);
+  // central ruined skyline / fires in the driving line
+  for (const [x, z, w, h, color] of [[-2.4, -9.5, 2.0, 4.4, 0x2a302c], [2.4, -12.0, 2.2, 3.6, 0x3a2b22], [-1.8, -16.0, 2.6, 5.2, 0x26322d], [3.0, -19.0, 2.4, 4.2, 0x303a34]]) {
+    box(w, h, 2.0, color, x, h / 2 - 0.3, z, ruins);
+    box(w + 0.2, 0.1, 2.2, 0x111614, x, h - 0.3, z, ruins);
+    for (let i = 0; i < 2; i++) box(0.28, 0.36, 0.05, 0xffb765, x - 0.3 + i * 0.6, h * 0.45, z + 1.02, ruins, { material: basic(0xffb765) });
+  }
+  pointLight(0xff5a2a, 5.5, 18, -1.0, 1.0, -10.0, group, { decay: 1.35 });
+  addGlow(group, 0xff5a2a, -1.0, 1.0, -10.0, 1.8, 0.24);
+  pointLight(0xffb765, 3.5, 18, 2.4, 3.6, -14.0, group, { decay: 1.4 });
+  addGlow(group, 0xffb765, 2.4, 3.6, -14.0, 1.3, 0.2);
+  const roadMat = toonMat(0x1a1d1a, { map: surfaceTexture("concrete", { repeat: [10, 10] }) });
+  box(18, 0.12, 100, 0x1a1d1a, 0, -0.4, -52, city, { material: roadMat });
+  const props = [];
+  for (let i = 0; i < 22; i++) {
+    const z = -8 - i * 4.6;
+    const x = i % 2 === 0 ? -4.2 - Math.random() * 2.5 : 4.2 + Math.random() * 2.5;
+    const w = 2.0 + Math.random() * 2.0;
+    const h = 2.2 + Math.random() * 3.8;
+    const color = i % 3 === 0 ? 0x2f3a34 : i % 3 === 1 ? 0x3b2b22 : 0x26322d;
+    box(w, h, 2.2, color, x, h / 2 - 0.3, z, ruins);
+    box(w + 0.2, 0.1, 2.4, 0x111614, x, h - 0.3, z, ruins);
+    for (let k = 0; k < 2; k++) {
+      if ((i + k) % 3 === 0) {
+        box(0.28, 0.38, 0.04, 0xffb765, x - 0.3 + k * 0.6, h * 0.55, z + 1.12, ruins, { material: basic(0xffb765) });
+      }
+    }
+    if (i % 4 === 0) {
+      const heat = pointLight(0xff5a2a, 2.4, 9, x * 0.6, 1.2, z + 1.8, ruins, { decay: 1.5 });
+      addGlow(ruins, 0xff5a2a, x * 0.6, 1.2, z + 1.8, 1.2, 0.2);
+      props.push(heat);
+    }
+  }
+  // overhead hanging cables / tunnel silhouettes
+  for (let i = 0; i < 10; i++) {
+    const z = -6 - i * 8;
+    box(18, 0.06, 0.08, 0x2a3530, 0, 4.5, z, ruins);
+  }
+  city.position.z = 0;
+  group.add(city);
+  refs.city = city;
+  refs.ruins = ruins;
+  refs.cityProps = props;
+
+  addDust(group, 18, 3, 0x8a7a62);
+  group.userData.refs = refs;
+  return { group, refs };
+}
+
+function buildKrylLegacy() {
   const group = new THREE.Group();
   const refs = {};
   const colliders = [];
@@ -1172,6 +1538,255 @@ export function buildKryl() {
   addDust(group, 50, 9, 0xa08d6b);
   group.userData.refs = refs;
   return { group, refs, colliders, spawn: new THREE.Vector3(0, 1.7, 4.8), bounds: { minX: -5.5, maxX: 5.5, minZ: -6.4, maxZ: 6.2 } };
+}
+
+export function buildKryl() {
+  const group = new THREE.Group();
+  const refs = {};
+  const colliders = [];
+  const npcs = [];
+  const W = 32;
+  const D = 30;
+  const H = 4.2;
+
+  const floorMat = toonMat(0x2d241b, { map: surfaceTexture("concrete", { repeat: [10, 10] }) });
+  const wallMat = toonMat(0x39433b, { map: surfaceTexture("metal", { repeat: [8, 2] }) });
+  const warmMat = toonMat(0x533b28, { map: surfaceTexture("wood", { repeat: [5, 2] }) });
+
+  // shell
+  box(W, 0.2, D, 0x2d241b, 0, -0.1, 0, group, { material: floorMat });
+  box(W, H, 0.3, 0x39433b, 0, H / 2, -D / 2, group, { material: wallMat });
+  box(W, H, 0.3, 0x303b35, 0, H / 2, D / 2, group, { material: wallMat });
+  for (const side of [-1, 1]) {
+    box(0.3, H, D, 0x303b35, side * W / 2, H / 2, 0, group, { material: wallMat });
+    colliders.push({ minX: side * W / 2 - 0.2, maxX: side * W / 2 + 0.2, minZ: -D / 2, maxZ: D / 2 });
+  }
+  colliders.push({ minX: -W / 2, maxX: W / 2, minZ: -D / 2 - 0.2, maxZ: -D / 2 + 0.2 });
+  colliders.push({ minX: -W / 2, maxX: W / 2, minZ: D / 2 - 0.2, maxZ: D / 2 + 0.2 });
+  box(W, 0.16, D, 0x141a17, 0, H, 0, group);
+
+  // ceiling beams and pipe runs
+  for (const x of [-12, -7, -2, 3, 8, 13]) box(0.12, 0.15, D, 0x1d2521, x, H - 0.2, 0, group);
+  for (const side of [-1, 1]) {
+    cyl(0.06, 0.06, 28, 6, 0x3f5a50, side * 5.8, H - 0.4, 0, group, { rotX: Math.PI / 2 });
+    cyl(0.045, 0.045, 28, 6, 0x8a4a2a, side * 5.66, H - 0.6, 0, group, { rotX: Math.PI / 2 });
+  }
+
+  // side partitions with wide doorways
+  const partition = (x, z1, z2) => {
+    const len = z2 - z1;
+    box(0.2, 2.7, len, 0x2a3630, x, 1.35, (z1 + z2) / 2, group);
+    box(0.28, 0.1, len, 0x8a5a2a, x, 2.72, (z1 + z2) / 2, group);
+    colliders.push({ minX: x - 0.15, maxX: x + 0.15, minZ: z1, maxZ: z2 });
+  };
+  for (const side of [-1, 1]) {
+    const x = side * 6.2;
+    partition(x, -15, -11.2);
+    partition(x, -9.4, -3.2);
+    partition(x, 0.8, 5.2);
+    partition(x, 7.4, 15);
+  }
+
+  // main market lane
+  for (const [x, z, color] of [[-4.2, 9.2, 0x7a3a24], [4.2, 9.2, 0x2f6f66], [-4.2, 4.2, 0xb8862a], [4.2, 4.2, 0x6b4a2e], [-4.2, -1.0, 0x2f6f66], [4.2, -1.0, 0x7a3a24]]) {
+    box(2.5, 0.7, 1.1, 0x3f2e20, x, 0.35, z, group);
+    box(2.8, 0.08, 1.3, color, x, 1.35, z, group, { rotZ: 0.03 });
+    cyl(0.025, 0.025, 2.2, 5, 0x2d241b, x - 1.05, 1.1, z + 0.4, group);
+    cyl(0.025, 0.025, 2.2, 5, 0x2d241b, x + 1.05, 1.1, z + 0.4, group);
+    for (let i = 0; i < 4; i++) cyl(0.07, 0.07, 0.14, 6, i % 2 ? 0x7d6a3f : 0x4c6045, x - 0.6 + i * 0.4, 0.88, z + 0.1, group);
+  }
+  // hanging bulbs / string lights
+  for (const [x, z, c] of [[-4, 11, 0xffb765], [4, 11, 0xffb765], [-4, 5, 0xffd27a], [4, 5, 0xff9a4a], [-3, -3, 0x8fe0c0], [3, -3, 0xffb765], [0, -8.5, 0xff8a6a]]) {
+    cyl(0.018, 0.018, 0.65, 5, 0x191d1a, x, H - 0.7, z, group);
+    sphere(0.08, 6, 5, c, x, H - 1.0, z, group, { material: basic(c) });
+    pointLight(c, 1.5, 7.5, x, H - 1.2, z, group, { decay: 1.5 });
+    addGlow(group, c, x, H - 1.0, z, 0.7, 0.24);
+    addLightShaft(group, c, x, H - 1.0, z, 3.2, 0.65, 0.028);
+  }
+  // broad warm wash down the main lane
+  for (const z of [12.4, 6.5, 0.5, -6.0, -11.0]) {
+    box(3.2, 0.05, 0.18, 0xffd27a, 0, H - 0.35, z, group, { material: basic(0xffd27a) });
+    pointLight(0xffb765, 2.2, 11, 0, H - 0.6, z, group, { decay: 1.35 });
+    addGlow(group, 0xffb765, 0, H - 0.5, z, 1.0, 0.18);
+  }
+
+  // Tokar's counter
+  box(3.4, 0.92, 0.72, 0x3f2e20, 0, 0.46, 10.4, group, { material: warmMat });
+  box(3.6, 0.1, 0.92, 0x5b4029, 0, 0.96, 10.4, group, { material: warmMat });
+  colliders.push({ minX: -1.8, maxX: 1.8, minZ: 10.0, maxZ: 10.8 });
+  const tokar = makeHumanoid({ coat: 0x4b3a2b, pants: 0x20231f, hair: 0x2a2119 });
+  tokar.position.set(0, 0, 11.4);
+  tokar.rotation.y = 0;
+  group.add(tokar);
+  refs.tokar = tokar;
+  box(0.17, 0.045, 0.035, 0x1b1c18, 0, 1.44, 0.11, tokar);
+  box(0.05, 0.05, 0.02, 0x8caa76, -0.05, 1.44, 0.13, tokar, { material: basic(0x8caa76) });
+  box(0.05, 0.05, 0.02, 0x8caa76, 0.05, 1.44, 0.13, tokar, { material: basic(0x8caa76) });
+  pointLight(0xffc078, 4.0, 5.0, 0, 2.0, 11.2, group, { decay: 1.25 });
+  addGlow(group, 0xffc078, 0, 1.75, 10.9, 0.9, 0.2);
+
+  // radio and missing-person wall behind Tokar
+  box(0.55, 0.35, 0.4, 0x2a302c, -1.2, 1.18, 10.35, group);
+  box(0.22, 0.11, 0.03, 0x8fbf7a, -1.2, 1.24, 10.56, group, { material: basic(0x8fbf7a) });
+  cyl(0.015, 0.015, 0.4, 5, 0x1a211d, -1.02, 1.42, 10.35, group, { rotZ: -0.3 });
+  box(3.0, 1.3, 0.05, 0x2b3029, 0, 2.25, 14.82, group);
+  for (let i = 0; i < 6; i++) {
+    box(0.34, 0.42, 0.02, 0x8b7b5d, -1.05 + (i % 3) * 0.72, 2.0 + Math.floor(i / 3) * 0.46, 14.78, group);
+  }
+  // child's drawing near the vent
+  box(0.48, 0.34, 0.02, 0xd8c9a3, -2.2, 1.55, -9.78, group);
+  for (let i = 0; i < 4; i++) box(0.06, 0.1 + i * 0.02, 0.01, 0x2a3530, -2.32 + i * 0.09, 1.53, -9.76, group);
+  sphere(0.05, 6, 5, 0x9e2f28, -2.05, 1.58, -9.76, group, { material: basic(0x9e2f28) });
+
+  // clinic (left, mid)
+  box(0.04, 0.6, 0.04, 0x8fe0c0, -15.7, 2.45, 2.5, group, { material: basic(0x8fe0c0) });
+  box(0.32, 0.08, 0.04, 0x8fe0c0, -15.7, 2.45, 2.5, group, { material: basic(0x8fe0c0) });
+  box(0.08, 0.32, 0.04, 0x8fe0c0, -15.7, 2.45, 2.5, group, { material: basic(0x8fe0c0) });
+  pointLight(0xcfe6b0, 3.4, 9, -12.5, 2.7, 2.0, group, { decay: 1.35 });
+  addGlow(group, 0xcfe6b0, -12.5, 2.5, 2.0, 1.0, 0.22);
+  for (const [x, z] of [[-14, 1.0], [-11.8, 1.0], [-14, 4.2], [-11.8, 4.2]]) {
+    box(1.5, 0.14, 0.8, 0x3a3f38, x, 0.55, z, group);
+    box(0.9, 0.1, 0.46, 0x9a9a82, x, 0.64, z, group);
+    for (const dx of [-0.65, 0.65]) box(0.08, 0.5, 0.08, 0x2a302c, x + dx, 0.28, z, group);
+  }
+  for (const z of [0.2, 2.5, 4.8]) {
+    plane(1.2, 0.06, 0xffffff, -9.4, 2.55, z, group, { rotY: Math.PI / 2, material: toonMat(0x8a9a88, { transparent: true, opacity: 0.7, side: THREE.DoubleSide }) });
+    plane(1.2, 0.9, 0xffffff, -9.4, 2.1, z, group, { rotY: Math.PI / 2, material: toonMat(0x8a9a88, { transparent: true, opacity: 0.45, side: THREE.DoubleSide }) });
+  }
+  box(2.6, 0.08, 0.35, 0x3a2c20, -14.5, 1.5, -0.6, group);
+  for (let i = 0; i < 6; i++) cyl(0.06, 0.06, 0.16, 6, i % 2 ? 0xc9c1aa : 0x8fbf7a, -15.5 + i * 0.42, 1.6, -0.6, group);
+
+  // canteen (right, mid)
+  for (const z of [0.2, 2.6, 5.0]) {
+    box(2.7, 0.12, 0.9, 0x5b4029, 12.4, 0.8, z, group, { material: warmMat });
+    for (const dx of [-1.1, 1.1]) box(0.12, 0.7, 0.12, 0x3a2a1a, 12.4 + dx, 0.4, z, group);
+    for (let i = 0; i < 3; i++) {
+      cyl(0.12, 0.13, 0.02, 8, 0xb7ad93, 11.7 + i * 0.7, 0.87, z, group);
+    }
+  }
+  cyl(0.36, 0.4, 0.7, 8, 0x3a2a1e, 14.0, 0.35, 2.6, group);
+  cyl(0.32, 0.32, 0.05, 8, 0x7e3a1c, 14.0, 0.72, 2.6, group, { material: basic(0xff7a2a) });
+  pointLight(0xff7a2a, 3.0, 6, 14.0, 1.0, 2.6, group, { decay: 1.4 });
+  addGlow(group, 0xff7a2a, 14.0, 0.9, 2.6, 0.9, 0.22);
+  addLightShaft(group, 0xb8c8b8, 14.0, 1.1, 2.6, 1.1, 0.28, 0.03);
+  // hanging food icons
+  for (let i = 0; i < 3; i++) {
+    cyl(0.18, 0.22, 0.07, 8, 0xc9a04a, 9.0, 2.8, 0.8 + i * 1.0, group, { material: basic(0xc9a04a) });
+    cyl(0.12, 0.12, 0.03, 8, 0x6b4a2e, 9.0, 2.77, 0.8 + i * 1.0, group);
+  }
+  pointLight(0xffb765, 3.8, 9, 12.0, 2.6, 2.2, group, { decay: 1.35 });
+  addGlow(group, 0xffb765, 12.0, 2.5, 2.2, 1.0, 0.22);
+
+  // habitation / bunk rooms (left, back)
+  for (const [x, z, y] of [[-14.0, -6.0, 0.55], [-14.0, -8.0, 0.55], [-14.0, -6.0, 1.35], [-14.0, -8.0, 1.35]]) {
+    box(1.4, 0.14, 2.0, 0x3f2e20, x, y, z, group);
+    box(1.2, 0.12, 1.7, x === -14 && z === -8 ? 0x71745f : 0x6b5a45, x, y + 0.1, z, group);
+  }
+  for (const x of [-15, -13]) {
+    for (const z of [-9.2, -7.0, -4.8]) box(0.1, 1.4, 0.1, 0x2a1e14, x, 0.7, z, group);
+  }
+  // laundry lines
+  for (const [x1, x2, z] of [[-15.5, -9.0, -4.2], [-15.0, -10.0, -9.4]]) {
+    for (let i = 0; i < 5; i++) {
+      plane(0.6, 0.5, 0xffffff, x1 + (x2 - x1) * (i / 4), 2.2, z, group, { material: toonMat(i % 2 ? 0x8a3a2a : 0x2e5e56, { side: THREE.DoubleSide }) });
+    }
+    cyl(0.015, 0.015, Math.abs(x2 - x1), 5, 0x3a4a42, (x1 + x2) / 2, 2.55, z, group, { rotZ: Math.PI / 2 });
+  }
+  // memorial shelf with tiny photos
+  box(2.2, 0.08, 0.3, 0x3a2c20, -11.5, 1.5, -11.25, group);
+  for (let i = 0; i < 5; i++) {
+    box(0.24, 0.3, 0.02, 0x8b7b5d, -12.4 + i * 0.45, 1.68, -11.2, group);
+  }
+  pointLight(0xffb765, 3.0, 8, -12.0, 2.6, -7.0, group, { decay: 1.4 });
+  addGlow(group, 0xffb765, -12.0, 2.5, -7.0, 1.0, 0.22);
+
+  // alley / shrine (right, back)
+  box(2.0, 0.4, 0.8, 0x3a2c20, 12.5, 0.2, -7.0, group);
+  for (let i = 0; i < 4; i++) {
+    cyl(0.06, 0.07, 0.24, 7, i % 2 ? 0xc9a04a : 0x9e4a2a, 11.7 + i * 0.5, 0.5, -7.0, group);
+    sphere(0.05, 6, 5, 0xffb765, 11.7 + i * 0.5, 0.68, -7.0, group, { material: basic(0xffb765) });
+  }
+  pointLight(0xffb765, 2.5, 5, 12.5, 0.9, -7.0, group, { decay: 1.5 });
+  addGlow(group, 0xffb765, 12.5, 0.8, -7.0, 0.9, 0.22);
+  pointLight(0x8fe0c0, 2.4, 7, 12.0, 2.4, -7.5, group, { decay: 1.45 });
+  addGlow(group, 0x8fe0c0, 12.0, 2.3, -7.5, 0.8, 0.2);
+  for (const [x, z] of [[9.0, -6.0], [15.0, -6.0], [9.0, -10.0], [15.0, -10.0]]) {
+    box(0.8, 0.8, 0.8, 0x4a3a2a, x, 0.4, z, group);
+  }
+
+  // vent works at the back
+  const ventZ = -13.3;
+  box(11.0, 3.4, 0.4, 0x202a25, 0, 1.7, ventZ - 0.2, group);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.0, 0.18, 8, 20), toonMat(0x2a3832));
+  ring.position.set(0, 2.1, ventZ + 0.1);
+  group.add(ring);
+  const fan = new THREE.Group();
+  fan.position.set(0, 2.1, ventZ + 0.2);
+  cyl(0.3, 0.3, 0.22, 10, 0x141c18, 0, 0, 0, fan, { rotX: Math.PI / 2 });
+  for (let i = 0; i < 5; i++) {
+    box(1.55, 0.28, 0.06, 0x9aa99b, Math.cos((Math.PI * 2 / 5) * i) * 0.78, Math.sin((Math.PI * 2 / 5) * i) * 0.78, 0, fan, { rotZ: (Math.PI * 2 / 5) * i });
+  }
+  group.add(fan);
+  refs.fan = fan;
+  pointLight(0x9bd0a0, 2.0, 8, 0, 1.8, ventZ + 1.6, group, { decay: 1.5 });
+  addGlow(group, 0x9bd0a0, 0, 1.8, ventZ + 1.4, 1.2, 0.2);
+  // hazard stripes around vent
+  for (let i = 0; i < 8; i++) {
+    box(0.32, 0.08, 0.06, i % 2 ? 0x1b1b1b : 0xd28a2a, -2.8 + i * 0.8, 0.05, ventZ + 0.9, group);
+  }
+  refs.ventGlow = pointLight(0x7ea06a, 0.7, 4, 0, 0.9, ventZ + 1.4, group, { decay: 1.8 });
+  refs.ventDoor = new THREE.Vector3(0, 0, ventZ + 1.1);
+
+  // station sign over vent works
+  plane(5.0, 0.9, 0xffffff, 0, 3.4, ventZ + 0.02, group, { material: stationSign("KRYL STATION", "#ffe08a") });
+  addGlow(group, 0xffd27a, 0, 3.4, ventZ + 0.3, 1.4, 0.16);
+
+  // NPCs
+  const npc = (x, z, coat, hair, name, lines, route = null, speed = 0.55, child = false) => {
+    const person = makeHumanoid({ child, coat, pants: 0x1b211d, hair });
+    person.position.set(x, 0, z);
+    group.add(person);
+    const record = { group: person, name, lines, route, speed, idx: 0, nextTalk: 0, baseY: 0 };
+    npcs.push(record);
+    return record;
+  };
+  npc(-9.0, 2.2, 0x9a9a82, 0x2a2119, "DOCTOR", ["Keep the wound clean.", "We're low on filters. Don't ask."], [[-9.0, 2.2], [-12.0, 3.8], [-9.0, 2.2]], 0.25);
+  npc(13.8, 2.8, 0x7a4a2a, 0x241a12, "COOK", ["Stew's hot. Don't ask what's in it.", "Sit. You look like the vent chewed you up."], [[13.8, 2.8], [12.0, 1.0], [13.8, 2.8]], 0.2);
+  npc(-11.4, -6.2, 0x4a3a2a, 0x2b1a12, "MOTHER", ["My boy went down the vent. He said he'd be back.", "Do you hear them at night? In the pipes?"], [[-11.4, -6.2], [-13.0, -7.5], [-11.4, -6.2]], 0.18);
+  npc(12.2, -8.0, 0x39423a, 0x1e1711, "TRADER", ["Filters. Rounds. Names. What do you need?", "Sanctuary? That's a good story to sell."], [[12.2, -8.0], [14.4, -6.2], [12.2, -8.0]], 0.18);
+  npc(-8.6, -7.6, 0x8a7135, 0x3b2418, "CHILD", ["I saw a light in the vent.", "The rat looked at me."], null, 0, true);
+  npc(3.0, -10.8, 0x4a5a4a, 0x241b14, "WORKER", ["Fan's jammed again.", "Don't go past the fan after dark."], [[3.0, -10.8], [1.0, -9.4], [3.0, -10.8]], 0.22);
+  npc(-3.8, 6.8, 0x7a3a24, 0x2a1a12, "VENDOR", ["Fresh air. Cheapest in Kryl.", "You buying or breathing?"], [[-3.8, 6.8], [-4.2, 8.6], [-3.8, 6.8]], 0.15);
+  npc(3.8, 6.8, 0x2f6f66, 0x241a12, "VENDOR", ["Three rounds for ten. No haggling.", "Vera pays better. Go to Zarya."], [[3.8, 6.8], [4.2, 8.6], [3.8, 6.8]], 0.15);
+  npc(-1.5, 2.0, 0x35443a, 0x1b211d, "RUNNER", ["Kryl used to be a city. Now it's a lung.", "If the fan stops, we all stop."], [[-1.5, 2.0], [3.5, -1.5], [0, -5.0], [-3.5, -1.5]], 0.6);
+  npc(2.2, 8.4, 0x4a3a2a, 0x2a2119, "PORTER", ["Move. I've got filters to haul.", "The lower deck is flooding again."], [[2.2, 8.4], [-2.8, 8.4], [-2.8, 3.0], [2.2, 3.0]], 0.52);
+  npc(-3.0, -1.5, 0x5a3b2a, 0x241a12, "SURVIVOR", ["They came through the floor. Just like the stories.", "Don't trust the radio. It lies."], [[-3.0, -1.5], [0.0, -4.0], [3.0, -1.5]], 0.42);
+  npc(0.5, 4.8, 0x39423a, 0x1e1711, "GUARD", ["Keep away from the fan tunnel.", "If you hear Mara down there, don't answer."], [[0.5, 4.8], [-2.0, 5.5], [2.0, 5.5]], 0.18);
+  refs.npcs = npcs;
+
+  // clutter / barrels
+  for (const [x, z, s] of [[-5.2, 12.2, 0.65], [5.2, 12.2, 0.7], [-5.2, 0.2, 0.55], [5.2, 0.2, 0.6], [-5.0, -5.0, 0.7], [5.0, -5.0, 0.55]]) {
+    box(s, s, s, 0x6a4a2c, x, s / 2, z, group);
+    box(s * 0.9, 0.08, s * 0.9, 0x3a2a1a, x, s * 0.8, z, group);
+    colliders.push({ minX: x - s / 2, maxX: x + s / 2, minZ: z - s / 2, maxZ: z + s / 2 });
+  }
+  for (const [x, z] of [[-5.4, 10.0], [5.4, 10.0], [-5.4, -8.0], [5.4, -8.0]]) {
+    cyl(0.28, 0.28, 0.8, 8, 0x8a5a2a, x, 0.4, z, group);
+    cyl(0.29, 0.29, 0.06, 8, 0x3a2a1a, x, 0.15, z, group);
+    colliders.push({ minX: x - 0.28, maxX: x + 0.28, minZ: z - 0.28, maxZ: z + 0.28 });
+  }
+
+  addDust(group, 70, 26, 0xa08d6b);
+  group.userData.refs = refs;
+  return {
+    group,
+    refs,
+    colliders,
+    npcs,
+    spawn: new THREE.Vector3(0, 0, 14.0),
+    spawnYaw: 0,
+    bounds: { minX: -15.2, maxX: 15.2, minZ: -14.2, maxZ: 14.2 },
+  };
 }
 
 export function buildVent() {
