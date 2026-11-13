@@ -17,7 +17,7 @@ import {
   makeTenant,
   makeCrawler,
   makeScavenger,
-} from "./world.js?v=31";
+} from "./world.js?v=33";
 
 function vec(x, y, z) {
   return new THREE.Vector3(x, y, z);

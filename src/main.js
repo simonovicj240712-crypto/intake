@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { AudioEngine } from "./audio.js?v=31";
-import { UI } from "./ui.js?v=31";
+import { AudioEngine } from "./audio.js?v=33";
+import { UI } from "./ui.js?v=33";
 import {
   buildDiningRoom,
   buildCrawlspace,
@@ -15,7 +15,7 @@ import {
   toonMat,
   addGlow,
   glowTexture,
-} from "./world.js?v=31";
+} from "./world.js?v=33";
 import {
   buildDeadRail,
   buildZarya,
@@ -31,7 +31,7 @@ import {
   buildWarrenMaze,
   buildFloodedMaze,
   buildLairMaze,
-} from "./levels.js?v=31";
+} from "./levels.js?v=33";
 
 const canvas = document.getElementById("c");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
@@ -2700,6 +2700,7 @@ document.addEventListener("keyup", (e) => {
 document.addEventListener("contextmenu", (e) => e.preventDefault());
 
 canvas.addEventListener("click", () => {
+  audio.init();
   if (state === "title") return;
   if (document.pointerLockElement !== canvas) lockPointer();
 });
@@ -2736,7 +2737,19 @@ function startGame() {
       btn.classList.remove("pressed");
       btn.setAttribute("aria-busy", "false");
     }
-    ui.showTitle(true);
+    try {
+      resetCommon();
+      state = "title";
+      levelId = null;
+      prologue = null;
+      audio.stopLoops();
+      startTitleScene();
+      ui.showTitle(true);
+      ui.clearFade();
+    } catch (resetErr) {
+      console.error("INTAKE could not return to the title:", resetErr);
+      ui.showTitle(true);
+    }
   }
 }
 window.__intakeStart = startGame;
